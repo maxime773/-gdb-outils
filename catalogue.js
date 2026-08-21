@@ -36,6 +36,6 @@ window.ATELIER = {
     "excel-formatter.html",
     "excel-remplacement.html",
     "pdf-dataviz.html"
-    "gestion-contact.html",
+    "gestion-contact.html"
   ]
 };

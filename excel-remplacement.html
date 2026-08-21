@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<!-- OUTIL
+     titre: Remplacement par correspondance
+     description: Remplace en masse des valeurs dans un Excel à partir d'une table de correspondance (ancienne valeur → nouvelle).
+     categorie: XLS
+     ia: non
+-->
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Remplacement par correspondance — Gaz de Bordeaux</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="exceljs.min.js"></script>
+  <style>
+    .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
+    .slot .slot-label { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--slate); margin-bottom: 8px; }
+    .drop.mini { padding: 26px 16px; }
+    .drop.mini .drop-icon { font-size: 24px; }
+    .drop.mini .drop-title { font-size: .95rem; }
+    .options { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
+    .opt { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+    .opt input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--steel); flex: none; }
+    .opt .lbl { font-size: .92rem; }
+    .opt .lbl small { display: block; color: var(--slate); font-size: .8rem; margin-top: 1px; }
+    .opt-title { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--slate); margin-top: 22px; text-transform: uppercase; }
+    @media (max-width: 640px) { .twocol, .options { grid-template-columns: 1fr; } }
+  </style>
+  <script src="feedback.js"></script>
+</head>
+<body>
+  <div class="wrap tool-page">
+
+    <a class="back" href="index.html">← Catalogue</a>
+
+    <section class="tool-hero">
+      <span class="eyebrow">XLS · 02</span>
+      <h1>Remplacement par correspondance</h1>
+      <p>Un « annule-et-remplace » à grande échelle : fournissez un fichier Excel et une table de correspondance (ancienne valeur → nouvelle), et l'outil applique tous les remplacements d'un coup. Les cellules modifiées sont surlignées.</p>
+    </section>
+
+    <div class="panel">
+      <div class="panel-strip">
+        <span class="k">TRAITEMENT</span> local · aucun envoi réseau · .xlsx / .csv
+      </div>
+      <div class="panel-body">
+
+        <div class="twocol">
+          <div class="slot">
+            <div class="slot-label">1 · Fichier à modifier</div>
+            <div class="drop mini" id="drop-data" tabindex="0" role="button" aria-label="Fichier à modifier">
+              <div class="drop-icon">📄</div>
+              <div class="drop-title">Glissez le fichier</div>
+              <div class="drop-hint">.xlsx ou .csv</div>
+              <input type="file" id="file-data" accept=".xlsx,.csv" hidden />
+            </div>
+            <div class="filemeta" id="meta-data"></div>
+          </div>
+          <div class="slot">
+            <div class="slot-label">2 · Table de correspondance</div>
+            <div class="drop mini" id="drop-map" tabindex="0" role="button" aria-label="Table de correspondance">
+              <div class="drop-icon">🔁</div>
+              <div class="drop-title">Glissez la table</div>
+              <div class="drop-hint">2 colonnes : actuelle → cible</div>
+              <input type="file" id="file-map" accept=".xlsx,.csv" hidden />
+            </div>
+            <div class="filemeta" id="meta-map"></div>
+          </div>
+        </div>
+
+        <div class="opt-title">Options</div>
+        <div class="options">
+          <label class="opt"><input type="radio" name="mode" id="mode-cell" checked><span class="lbl">Cellule entière<small>remplace si toute la cellule correspond</small></span></label>
+          <label class="opt"><input type="radio" name="mode" id="mode-text"><span class="lbl">Dans le texte<small>remplace aussi les portions de texte</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-case"><span class="lbl">Respecter la casse<small>distingue majuscules et minuscules</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-highlight" checked><span class="lbl">Surligner les cellules modifiées<small>fond vert clair</small></span></label>
+        </div>
+
+        <button class="run" id="run" disabled>Appliquer les remplacements</button>
+
+        <div class="progress" id="progress" hidden>
+          <div class="track"><div class="fill" id="fill"></div></div>
+          <div class="pstatus" id="pstatus"></div>
+        </div>
+
+        <div id="messages"></div>
+        <div id="results"></div>
+
+      </div>
+    </div>
+
+    <div class="colophon">
+      <span>Gaz de Bordeaux — XLS · 02</span>
+      <span>ExcelJS — embarqué</span>
+    </div>
+
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    const $=id=>document.getElementById(id);
+    const runEl=$("run"), progEl=$("progress"), fillEl=$("fill"), statusEl=$("pstatus"),
+          msgEl=$("messages"), resEl=$("results");
+
+    let dataFile=null, mapFile=null, busy=false;
+    const GREENFILL="FFE3F1EA";
+
+    function fmtSize(b){ if(b<1024)return b+" o"; if(b<1048576)return (b/1024).toFixed(0)+" Ko"; return (b/1048576).toFixed(1)+" Mo"; }
+    function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
+    function clearMessages(){ msgEl.innerHTML=""; }
+    function showMessage(kind,html){ const d=document.createElement("div"); d.className="notice "+kind; d.innerHTML=html; msgEl.appendChild(d); }
+    function setProgress(p,t){ progEl.hidden=false; fillEl.style.width=Math.max(0,Math.min(100,p))+"%"; statusEl.textContent=t; }
+    function reEsc(s){ return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+
+    function wireDrop(dropId, inputId, metaId, onset){
+      const drop=$(dropId), input=$(inputId), meta=$(metaId);
+      function set(file){
+        if(!file) return;
+        if(!/\.(xlsx|csv)$/i.test(file.name)){ clearMessages(); showMessage("err","Fichier non pris en charge : "+esc(file.name)+" (attendu .xlsx ou .csv)."); return; }
+        onset(file);
+        drop.classList.add("has");
+        drop.innerHTML='<div class="drop-icon">✅</div><div class="drop-title">'+esc(file.name)+'</div><div class="drop-hint">'+fmtSize(file.size)+'</div>';
+        resEl.innerHTML=""; clearMessages(); refresh();
+      }
+      drop.addEventListener("click",()=>{ if(!busy) input.click(); });
+      drop.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&!busy){ e.preventDefault(); input.click(); } });
+      input.addEventListener("change",e=>set(e.target.files[0]));
+      ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); if(!busy) drop.classList.add("over"); }));
+      ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.remove("over"); }));
+      drop.addEventListener("drop",e=>{ if(busy) return; const f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) set(f); });
+    }
+    wireDrop("drop-data","file-data","meta-data",f=>dataFile=f);
+    wireDrop("drop-map","file-map","meta-map",f=>mapFile=f);
+
+    function refresh(){ runEl.disabled = busy || !dataFile || !mapFile; }
+
+    // ---------- lecture fichiers ----------
+    function detectDelim(line){ const c=(line.match(/,/g)||[]).length, s=(line.match(/;/g)||[]).length; return s>c?";":","; }
+    function coerce(v){ const t=String(v).trim(); if(t==="")return ""; if(/^-?\d+([.,]\d+)?$/.test(t)&&!(/^0\d/.test(t)))return parseFloat(t.replace(",",".")); return v; }
+    function parseCSV(text){
+      text=text.replace(/^\uFEFF/,""); const nl=text.indexOf("\n"); const delim=detectDelim(text.slice(0,nl>=0?nl:text.length));
+      const rows=[]; let row=[],field="",inQ=false;
+      for(let i=0;i<text.length;i++){ const ch=text[i];
+        if(inQ){ if(ch==='"'){ if(text[i+1]==='"'){ field+='"'; i++; } else inQ=false; } else field+=ch; }
+        else { if(ch==='"') inQ=true; else if(ch===delim){ row.push(field); field=""; } else if(ch==="\n"){ row.push(field); rows.push(row); row=[]; field=""; } else if(ch!=="\r") field+=ch; }
+      }
+      if(field!==""||row.length){ row.push(field); rows.push(row); }
+      return rows;
+    }
+    async function loadWB(file){
+      const wb=new ExcelJS.Workbook();
+      if(/\.csv$/i.test(file.name)){
+        const rows=parseCSV(await file.text()).filter(r=>r.length);
+        const ws=wb.addWorksheet("F1"); rows.forEach(r=>ws.addRow(r.map(coerce)));
+        return ws;
+      }
+      await wb.xlsx.load(await file.arrayBuffer());
+      const ws=wb.worksheets[0]; if(!ws) throw new Error("aucune feuille"); return ws;
+    }
+
+    // ---------- table de correspondance ----------
+    function looksLikeHeader(a,b){
+      const s=(String(a)+" "+String(b)).toLowerCase();
+      return /(valeur|actuel|ancien|cible|nouveau|nouvelle|old|new|remplac)/.test(s);
+    }
+    async function loadMap(file, caseSensitive){
+      const ws=await loadWB(file);
+      const map=new Map(); let first=true;
+      ws.eachRow({includeEmpty:false}, row=>{
+        const a=row.getCell(1).value, b=row.getCell(2).value;
+        if(first){ first=false; if(looksLikeHeader(a,b)) return; }
+        if(a==null || String(a).trim()==="") return;
+        let key=String(a).trim(); if(!caseSensitive) key=key.toLowerCase();
+        map.set(key, b==null?"":b);
+      });
+      return map;
+    }
+
+    runEl.addEventListener("click", async ()=>{
+      if(!dataFile || !mapFile || busy) return;
+      busy=true; runEl.disabled=true; runEl.textContent="Traitement…"; clearMessages(); resEl.innerHTML="";
+      const wholeCell=$("mode-cell").checked;
+      const caseSensitive=$("o-case").checked;
+      const highlight=$("o-highlight").checked;
+
+      try {
+        setProgress(15,"Lecture de la table de correspondance…");
+        const map=await loadMap(mapFile, caseSensitive);
+        if(map.size===0) throw new Error("la table de correspondance est vide (2 colonnes attendues : valeur actuelle, valeur cible)");
+
+        setProgress(35,"Lecture du fichier à modifier…");
+        const wb=new ExcelJS.Workbook();
+        let ws;
+        if(/\.csv$/i.test(dataFile.name)){ const rows=parseCSV(await dataFile.text()).filter(r=>r.length); ws=wb.addWorksheet("F1"); rows.forEach(r=>ws.addRow(r.map(coerce))); }
+        else { await wb.xlsx.load(await dataFile.arrayBuffer()); ws=wb.worksheets[0]; }
+
+        setProgress(60,"Application des remplacements…");
+        let cellsChanged=0; const usedKeys=new Set();
+
+        // pré-compile pour le mode "dans le texte"
+        let entries=null;
+        if(!wholeCell){ entries=Array.from(map.entries()).map(([k,v])=>({ re:new RegExp(reEsc(k), caseSensitive?"g":"gi"), v:String(v), k })); }
+
+        ws.eachRow({includeEmpty:false}, row=>{
+          row.eachCell({includeEmpty:false}, cell=>{
+            const val=cell.value; if(val==null) return;
+            if(typeof val==="object") return; // ignore formules / objets
+            const s=String(val);
+
+            if(wholeCell){
+              let key=s.trim(); if(!caseSensitive) key=key.toLowerCase();
+              if(map.has(key)){
+                const nv=map.get(key);
+                if(String(nv)!==s){ cell.value=nv; if(highlight) cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:GREENFILL}}; cellsChanged++; usedKeys.add(key); }
+              }
+            } else {
+              let out=s, touched=false;
+              entries.forEach(e=>{ if(e.re.test(out)){ e.re.lastIndex=0; out=out.replace(e.re, e.v); touched=true; usedKeys.add(e.k); } });
+              if(touched && out!==s){ cell.value=out; if(highlight) cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:GREENFILL}}; cellsChanged++; }
+            }
+          });
+        });
+
+        setProgress(90,"Génération du fichier…");
+        const buf=await wb.xlsx.writeBuffer();
+        const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+        const url=URL.createObjectURL(blob);
+        const base=dataFile.name.replace(/\.(xlsx|csv)$/i,"");
+        const outName=base+"-remplace.xlsx";
+
+        setProgress(100,"Terminé.");
+        try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"excel-remplacement"})}).catch(function(){});}catch(e){}
+        resEl.innerHTML='<div class="results"><div class="results-head">'+
+          '<div class="summary"><span>'+cellsChanged+'</span> cellule'+(cellsChanged>1?"s":"")+' modifiée'+(cellsChanged>1?"s":"")+' · '+usedKeys.size+' correspondance'+(usedKeys.size>1?"s":"")+' appliquée'+(usedKeys.size>1?"s":"")+'</div>'+
+          '<a class="download" href="'+url+'" download="'+esc(outName)+'">⬇ Télécharger le .xlsx ('+fmtSize(blob.size)+')</a>'+
+        '</div></div>';
+        if(cellsChanged===0) showMessage("warn","Aucune cellule ne correspondait aux valeurs de la table. Vérifiez la casse, ou essayez le mode « Dans le texte ».");
+
+      } catch(err){
+        console.error(err); progEl.hidden=true;
+        showMessage("err","Impossible de traiter : "+esc(err.message||String(err))+".");
+      } finally {
+        busy=false; runEl.textContent="Appliquer les remplacements"; refresh();
+      }
+    });
+
+  })();
+  </script>
+</body>
+</html>

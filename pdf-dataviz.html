@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<!-- OUTIL
+     titre: PDF vers visualisation
+     description: Extrait les chiffres clés d'un PDF et en produit des graphiques lisibles.
+     categorie: DATA
+     ia: oui
+-->
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF vers visualisation — Gaz de Bordeaux</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="pdf.min.js"></script>
+  <script src="chart.min.js"></script>
+  <script src="jspdf.min.js"></script>
+  <style>
+    .charts { margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .chartcard { background: #fff; border: 1px solid var(--line-2); border-radius: var(--radius); padding: 16px; }
+    .chartcard h4 { font-size: .95rem; margin-bottom: 10px; }
+    .chartcard .cwrap { position: relative; height: 240px; }
+    .ai-note { font-family: var(--mono); font-size: 11.5px; color: var(--slate); margin-top: 16px; display: flex; align-items: center; gap: 8px; }
+    .ai-note .d { width: 7px; height: 7px; border-radius: 50%; background: var(--signal); flex: none; }
+    .summary-box { margin-top: 20px; background: var(--signal-soft); border: 1px solid #E8D8B4; border-radius: var(--radius); padding: 14px 16px; }
+    .summary-box .t { font-weight: 700; margin-bottom: 4px; }
+    @media (max-width: 640px) { .charts { grid-template-columns: 1fr; } }
+  </style>
+  <script src="feedback.js"></script>
+</head>
+<body>
+  <div class="wrap tool-page">
+
+    <a class="back" href="index.html">← Catalogue</a>
+
+    <section class="tool-hero">
+      <span class="eyebrow">DATA · 01</span>
+      <h1>PDF vers visualisation</h1>
+      <p>Déposez un PDF contenant des chiffres (rapport, tableau, bilan). L'outil en extrait le texte sur votre poste, l'envoie à Claude pour repérer les données clés, et en dessine des graphiques.</p>
+    </section>
+
+    <div class="panel">
+      <div class="panel-strip">
+        <span class="k">TRAITEMENT</span> extraction locale · analyse par l'IA (serveur) · graphiques
+      </div>
+      <div class="panel-body">
+
+        <div class="drop" id="drop" tabindex="0" role="button" aria-label="Déposer un PDF">
+          <div class="drop-icon">📈</div>
+          <div class="drop-title">Glissez votre PDF ici</div>
+          <div class="drop-hint">ou cliquez pour choisir le fichier</div>
+          <input type="file" id="file" accept="application/pdf,.pdf" hidden />
+        </div>
+
+        <button class="run" id="run" disabled>Analyser et visualiser</button>
+
+        <div class="progress" id="progress" hidden>
+          <div class="track"><div class="fill" id="fill"></div></div>
+          <div class="pstatus" id="pstatus"></div>
+        </div>
+
+        <div id="messages"></div>
+        <div id="results"></div>
+
+        <div class="ai-note"><span class="d"></span> Cet outil envoie le texte extrait à un modèle d'IA pour analyse. Aucun fichier n'est transmis, seulement le texte.</div>
+
+      </div>
+    </div>
+
+    <div class="colophon">
+      <span>Gaz de Bordeaux — DATA · 01</span>
+      <span>pdf.js · Chart.js — embarqués</span>
+    </div>
+
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
+
+    const dropEl=document.getElementById("drop"), fileEl=document.getElementById("file"),
+          runEl=document.getElementById("run"), progEl=document.getElementById("progress"),
+          fillEl=document.getElementById("fill"), statusEl=document.getElementById("pstatus"),
+          msgEl=document.getElementById("messages"), resEl=document.getElementById("results");
+
+    let selectedFile=null, busy=false;
+    let chartInstances=[];
+    let lastPayload=null;
+
+    const PALETTE=["#0B3A67","#EF7D00","#2C6DA3","#F5A623","#6FA8D6","#8A6412","#B5C9BD","#E3C879"];
+
+    function fmtSize(b){ if(b<1024)return b+" o"; if(b<1048576)return (b/1024).toFixed(0)+" Ko"; return (b/1048576).toFixed(1)+" Mo"; }
+    function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
+    function clearMessages(){ msgEl.innerHTML=""; }
+    function showMessage(kind, html){ const d=document.createElement("div"); d.className="notice "+kind; d.innerHTML=html; msgEl.appendChild(d); }
+    function setProgress(pct, text){ progEl.hidden=false; fillEl.style.width=Math.max(0,Math.min(100,pct))+"%"; statusEl.textContent=text; }
+    function clearCharts(){ chartInstances.forEach(c=>{try{c.destroy();}catch(e){}}); chartInstances=[]; }
+
+    function setFile(file){
+      if(!file) return;
+      if(file.type!=="application/pdf" && !/\.pdf$/i.test(file.name)){ clearMessages(); showMessage("err","Ce fichier n'est pas un PDF."); return; }
+      selectedFile=file; resEl.innerHTML=""; progEl.hidden=true; clearMessages(); clearCharts();
+      dropEl.classList.add("has");
+      dropEl.innerHTML='<div class="drop-icon">✅</div><div class="filemeta"><span class="name">'+esc(file.name)+
+        '</span> <span class="size">· '+fmtSize(file.size)+'</span></div>'+
+        '<button class="link-btn" id="clear" type="button">Choisir un autre fichier</button>';
+      document.getElementById("clear").addEventListener("click",e=>{ e.stopPropagation(); resetDrop(); });
+      runEl.disabled=false;
+    }
+    function resetDrop(){
+      selectedFile=null; fileEl.value=""; runEl.disabled=true; progEl.hidden=true; resEl.innerHTML=""; clearMessages(); clearCharts();
+      dropEl.classList.remove("has");
+      dropEl.innerHTML='<div class="drop-icon">📈</div><div class="drop-title">Glissez votre PDF ici</div><div class="drop-hint">ou cliquez pour choisir le fichier</div>';
+    }
+
+    dropEl.addEventListener("click",()=>{ if(!busy) fileEl.click(); });
+    dropEl.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&!busy){ e.preventDefault(); fileEl.click(); } });
+    fileEl.addEventListener("change",e=>setFile(e.target.files[0]));
+    ["dragenter","dragover"].forEach(ev=>dropEl.addEventListener(ev,e=>{ e.preventDefault(); if(!busy) dropEl.classList.add("over"); }));
+    ["dragleave","drop"].forEach(ev=>dropEl.addEventListener(ev,e=>{ e.preventDefault(); dropEl.classList.remove("over"); }));
+    dropEl.addEventListener("drop",e=>{ if(busy) return; const f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) setFile(f); });
+
+    async function extractText(file){
+      const buf=await file.arrayBuffer();
+      const pdf=await pdfjsLib.getDocument({ data: buf }).promise;
+      let text="";
+      for(let i=1;i<=pdf.numPages;i++){
+        const page=await pdf.getPage(i);
+        const c=await page.getTextContent();
+        text += c.items.map(it=>it.str).join(" ") + "\n";
+        setProgress((i/pdf.numPages)*40, "Lecture du PDF… page "+i+"/"+pdf.numPages);
+      }
+      return text;
+    }
+
+    function renderCharts(payload){
+      lastPayload = payload;
+      const parts=[];
+      const charts=Array.isArray(payload.graphiques)?payload.graphiques:[];
+      if(charts.length){
+        parts.push('<div class="results-head" style="margin-bottom:16px"><div class="summary" style="font-weight:700">Rapport généré</div>'+
+          '<button class="download" id="dlpdf" type="button" style="border:none;cursor:pointer">⬇ Télécharger le rapport (PDF)</button></div>');
+      }
+      if(payload.resume){
+        parts.push('<div class="summary-box">'+(payload.titre?'<div class="t">'+esc(payload.titre)+'</div>':'')+esc(payload.resume)+'</div>');
+      }
+      if(charts.length){
+        parts.push('<div class="charts" id="charts"></div>');
+      }
+      resEl.innerHTML=parts.join("");
+
+      if(!charts.length) return;
+      const dl=document.getElementById("dlpdf");
+      if(dl) dl.addEventListener("click", buildPdf);
+
+      const host=document.getElementById("charts");
+      charts.slice(0,4).forEach((g, idx)=>{
+        const card=document.createElement("div"); card.className="chartcard";
+        card.innerHTML='<h4>'+esc(g.titre||("Graphique "+(idx+1)))+(g.unite?' <span style="color:var(--slate);font-weight:400">('+esc(g.unite)+')</span>':'')+'</h4><div class="cwrap"><canvas></canvas></div>';
+        host.appendChild(card);
+        const ctx=card.querySelector("canvas").getContext("2d");
+        const type=["bar","line","pie"].includes(g.type)?g.type:"bar";
+        const colors=(g.labels||[]).map((_,i)=>PALETTE[i%PALETTE.length]);
+        const ds={ label:g.titre||"", data:g.valeurs||[] };
+        if(type==="pie"){ ds.backgroundColor=colors; }
+        else if(type==="line"){ ds.borderColor=PALETTE[0]; ds.backgroundColor="rgba(11,58,103,.12)"; ds.tension=.3; ds.fill=true; }
+        else { ds.backgroundColor=PALETTE[0]; }
+        const chart=new Chart(ctx,{
+          type: type,
+          data: { labels: g.labels||[], datasets: [ds] },
+          options: { responsive:true, maintainAspectRatio:false, animation:false,
+            plugins:{ legend:{ display: type==="pie" } },
+            scales: type==="pie" ? {} : { y:{ beginAtZero:true } } }
+        });
+        chartInstances.push(chart);
+      });
+    }
+
+    function buildPdf(){
+      if(!window.jspdf || !window.jspdf.jsPDF){ showMessage("err","Export PDF indisponible."); return; }
+      const { jsPDF }=window.jspdf;
+      const doc=new jsPDF({ unit:"pt", format:"a4" });
+      const pageW=doc.internal.pageSize.getWidth(), pageH=doc.internal.pageSize.getHeight();
+      const m=40; let y=m;
+
+      doc.setFont("helvetica","bold"); doc.setFontSize(16); doc.setTextColor(20,63,43);
+      const title=(lastPayload && lastPayload.titre) ? lastPayload.titre : "Rapport de visualisation";
+      doc.text(doc.splitTextToSize(title, pageW-m*2), m, y); y+=24;
+
+      if(lastPayload && lastPayload.resume){
+        doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(70);
+        const lines=doc.splitTextToSize(lastPayload.resume, pageW-m*2);
+        doc.text(lines, m, y); y+=lines.length*13+16;
+      }
+      doc.setTextColor(0);
+
+      const cards=document.querySelectorAll("#charts .chartcard");
+      cards.forEach(card=>{
+        const canvas=card.querySelector("canvas");
+        const h4=card.querySelector("h4");
+        const imgW=pageW-m*2;
+        const imgH=Math.min(imgW*(canvas.height/canvas.width), 260);
+        if(y+18+imgH > pageH-m){ doc.addPage(); y=m; }
+        if(h4){ doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.setTextColor(20,63,43); doc.text(h4.textContent.trim(), m, y); y+=14; doc.setTextColor(0); }
+        try { doc.addImage(canvas.toDataURL("image/png",1.0), "PNG", m, y, imgW, imgH); } catch(e){}
+        y+=imgH+20;
+      });
+
+      const base=(selectedFile && selectedFile.name ? selectedFile.name.replace(/\.pdf$/i,"") : "rapport");
+      doc.save(base+"-visualisation.pdf");
+    }
+
+    runEl.addEventListener("click", async ()=>{
+      if(!selectedFile || busy) return;
+      busy=true; runEl.disabled=true; runEl.textContent="Analyse en cours…"; clearMessages(); resEl.innerHTML=""; clearCharts();
+      try {
+        const text=await extractText(selectedFile);
+        if(!text.trim()){
+          progEl.hidden=true;
+          showMessage("warn","Aucun texte n'a pu être extrait — ce PDF est peut-être une image scannée.");
+          return;
+        }
+        setProgress(60,"Analyse par l'IA…");
+        const resp=await fetch("/.netlify/functions/dataviz",{
+          method:"POST", headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify({ text: text })
+        });
+        setProgress(90,"Construction des graphiques…");
+        const data=await resp.json();
+        if(!resp.ok || data.error){
+          progEl.hidden=true;
+          showMessage("err","Analyse impossible : "+esc((data && data.error) || ("erreur "+resp.status))+
+            (data && data.detail ? " ("+esc(data.detail)+")" : ""));
+          return;
+        }
+        setProgress(100,"Terminé.");
+        renderCharts(data);
+        try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"pdf-dataviz"})}).catch(function(){});}catch(e){}
+        if(!(Array.isArray(data.graphiques) && data.graphiques.length)){
+          showMessage("warn","Aucune donnée chiffrée exploitable n'a été repérée dans ce document.");
+        }
+      } catch(err){
+        progEl.hidden=true;
+        showMessage("err","Une erreur est survenue : "+esc(err.message||String(err))+". Réessayez depuis l'adresse en ligne du site.");
+      } finally {
+        busy=false; runEl.textContent="Analyser et visualiser"; runEl.disabled=!selectedFile;
+      }
+    });
+
+  })();
+  </script>
+</body>
+</html>

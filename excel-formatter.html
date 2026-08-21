@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<!-- OUTIL
+     titre: Metteur en forme Excel
+     description: Nettoie et met en forme un fichier Excel ou CSV : en-têtes, largeurs, filtres, totaux — en un clic.
+     categorie: XLS
+     ia: non
+-->
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metteur en forme Excel — Gaz de Bordeaux</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="exceljs.min.js"></script>
+  <style>
+    .options { margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; }
+    .opt { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+    .opt input { margin-top: 3px; width: 16px; height: 16px; accent-color: var(--steel); flex: none; }
+    .opt .lbl { font-size: .92rem; }
+    .opt .lbl small { display: block; color: var(--slate); font-size: .8rem; margin-top: 1px; }
+    .opt-title { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; color: var(--slate); margin-top: 20px; text-transform: uppercase; }
+    @media (max-width: 560px) { .options { grid-template-columns: 1fr; } }
+  </style>
+  <script src="feedback.js"></script>
+</head>
+<body>
+  <div class="wrap tool-page">
+
+    <a class="back" href="index.html">← Catalogue</a>
+
+    <section class="tool-hero">
+      <span class="eyebrow">XLS · 01</span>
+      <h1>Metteur en forme Excel</h1>
+      <p>Déposez un fichier Excel ou CSV un peu brut, choisissez ce que vous voulez appliquer, et récupérez un <code>.xlsx</code> propre et lisible. Tout se passe sur votre poste.</p>
+    </section>
+
+    <div class="panel">
+      <div class="panel-strip">
+        <span class="k">TRAITEMENT</span> local · aucun envoi réseau · .xlsx / .csv acceptés
+      </div>
+      <div class="panel-body">
+
+        <div class="drop" id="drop" tabindex="0" role="button" aria-label="Déposer un fichier Excel ou CSV">
+          <div class="drop-icon">📊</div>
+          <div class="drop-title">Glissez votre fichier ici</div>
+          <div class="drop-hint">Excel (.xlsx) ou CSV · ou cliquez pour choisir</div>
+          <input type="file" id="file" accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" hidden />
+        </div>
+
+        <div class="opt-title" id="opt-title" hidden>Mise en forme à appliquer</div>
+        <div class="options" id="options" hidden>
+          <label class="opt"><input type="checkbox" id="o-empty" checked><span class="lbl">Supprimer les lignes vides<small>nettoie les rangées sans contenu</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-header" checked><span class="lbl">En-têtes en évidence<small>1ʳᵉ ligne en gras, fond vert</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-width" checked><span class="lbl">Ajuster les largeurs<small>colonnes adaptées au contenu</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-freeze" checked><span class="lbl">Figer l'en-tête<small>la 1ʳᵉ ligne reste visible</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-filter" checked><span class="lbl">Filtres automatiques<small>menus de tri sur l'en-tête</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-totals"><span class="lbl">Ligne de totaux<small>somme des colonnes chiffrées</small></span></label>
+          <label class="opt"><input type="checkbox" id="o-borders"><span class="lbl">Bordures légères<small>quadrillage discret</small></span></label>
+        </div>
+
+        <button class="run" id="run" disabled>Mettre en forme</button>
+
+        <div class="progress" id="progress" hidden>
+          <div class="track"><div class="fill" id="fill"></div></div>
+          <div class="pstatus" id="pstatus"></div>
+        </div>
+
+        <div id="messages"></div>
+        <div id="results"></div>
+
+      </div>
+    </div>
+
+    <div class="colophon">
+      <span>Gaz de Bordeaux — XLS · 01</span>
+      <span>ExcelJS — embarqué</span>
+    </div>
+
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    const dropEl   = document.getElementById("drop");
+    const fileEl   = document.getElementById("file");
+    const runEl    = document.getElementById("run");
+    const progEl   = document.getElementById("progress");
+    const fillEl   = document.getElementById("fill");
+    const statusEl = document.getElementById("pstatus");
+    const msgEl    = document.getElementById("messages");
+    const resEl    = document.getElementById("results");
+    const optsEl   = document.getElementById("options");
+    const optTitle = document.getElementById("opt-title");
+
+    let selectedFile = null;
+    let busy = false;
+
+    const GREEN = "FF0B3A67";
+
+    function fmtSize(b){ if(b<1024)return b+" o"; if(b<1048576)return (b/1024).toFixed(0)+" Ko"; return (b/1048576).toFixed(1)+" Mo"; }
+    function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
+    function clearMessages(){ msgEl.innerHTML=""; }
+    function showMessage(kind, html){ const d=document.createElement("div"); d.className="notice "+kind; d.innerHTML=html; msgEl.appendChild(d); }
+    function setProgress(pct, text){ progEl.hidden=false; fillEl.style.width=Math.max(0,Math.min(100,pct))+"%"; statusEl.textContent=text; }
+
+    function setFile(file){
+      if(!file) return;
+      if(!/\.(xlsx|csv)$/i.test(file.name)){
+        clearMessages(); showMessage("err","Format non pris en charge. Déposez un fichier <strong>.xlsx</strong> ou <strong>.csv</strong>.");
+        return;
+      }
+      selectedFile=file; resEl.innerHTML=""; progEl.hidden=true; clearMessages();
+      dropEl.classList.add("has");
+      dropEl.innerHTML =
+        '<div class="drop-icon">✅</div>' +
+        '<div class="filemeta"><span class="name">'+esc(file.name)+'</span> <span class="size">· '+fmtSize(file.size)+'</span></div>' +
+        '<button class="link-btn" id="clear" type="button">Choisir un autre fichier</button>';
+      document.getElementById("clear").addEventListener("click",e=>{ e.stopPropagation(); resetDrop(); });
+      optsEl.hidden=false; optTitle.hidden=false; runEl.disabled=false;
+    }
+    function resetDrop(){
+      selectedFile=null; fileEl.value=""; runEl.disabled=true; progEl.hidden=true; resEl.innerHTML=""; clearMessages();
+      dropEl.classList.remove("has");
+      dropEl.innerHTML =
+        '<div class="drop-icon">📊</div>' +
+        '<div class="drop-title">Glissez votre fichier ici</div>' +
+        '<div class="drop-hint">Excel (.xlsx) ou CSV · ou cliquez pour choisir</div>';
+    }
+
+    dropEl.addEventListener("click",()=>{ if(!busy) fileEl.click(); });
+    dropEl.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&!busy){ e.preventDefault(); fileEl.click(); } });
+    fileEl.addEventListener("change",e=>setFile(e.target.files[0]));
+    ["dragenter","dragover"].forEach(ev=>dropEl.addEventListener(ev,e=>{ e.preventDefault(); if(!busy) dropEl.classList.add("over"); }));
+    ["dragleave","drop"].forEach(ev=>dropEl.addEventListener(ev,e=>{ e.preventDefault(); dropEl.classList.remove("over"); }));
+    dropEl.addEventListener("drop",e=>{ if(busy) return; const f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) setFile(f); });
+
+    // ---------- CSV ----------
+    function detectDelim(line){ const c=(line.match(/,/g)||[]).length, s=(line.match(/;/g)||[]).length; return s>c?";":","; }
+    function coerce(v){
+      if(v==null) return v;
+      const t=String(v).trim();
+      if(t==="") return "";
+      // nombre simple (pas de code à zéro initial type 0123)
+      if(/^-?\d+([.,]\d+)?$/.test(t) && !(/^0\d/.test(t))) return parseFloat(t.replace(",", "."));
+      return v;
+    }
+    function parseCSV(text){
+      text=text.replace(/^\uFEFF/,"");
+      const firstLine=text.slice(0, text.indexOf("\n")>=0?text.indexOf("\n"):text.length);
+      const delim=detectDelim(firstLine);
+      const rows=[]; let row=[]; let field=""; let inQ=false;
+      for(let i=0;i<text.length;i++){
+        const ch=text[i];
+        if(inQ){
+          if(ch==='"'){ if(text[i+1]==='"'){ field+='"'; i++; } else inQ=false; }
+          else field+=ch;
+        } else {
+          if(ch==='"') inQ=true;
+          else if(ch===delim){ row.push(field); field=""; }
+          else if(ch==="\n"){ row.push(field); rows.push(row); row=[]; field=""; }
+          else if(ch==="\r"){ /* ignore */ }
+          else field+=ch;
+        }
+      }
+      if(field!=="" || row.length){ row.push(field); rows.push(row); }
+      return rows;
+    }
+
+    async function loadWorkbook(file){
+      const wb = new ExcelJS.Workbook();
+      if(/\.csv$/i.test(file.name)){
+        const text = await file.text();
+        const rows = parseCSV(text).filter(r=>r.length);
+        const ws = wb.addWorksheet("Feuille1");
+        rows.forEach(r=> ws.addRow(r.map(coerce)) );
+        return { wb, ws };
+      } else {
+        const buf = await file.arrayBuffer();
+        await wb.xlsx.load(buf);
+        const ws = wb.worksheets[0];
+        if(!ws) throw new Error("aucune feuille trouvée");
+        return { wb, ws };
+      }
+    }
+
+    function thin(){ return { style:"thin", color:{argb:"FFE0E0E0"} }; }
+
+    runEl.addEventListener("click", async ()=>{
+      if(!selectedFile || busy) return;
+      busy=true; runEl.disabled=true; runEl.textContent="Mise en forme…"; clearMessages(); resEl.innerHTML="";
+
+      const opt = {
+        empty:  document.getElementById("o-empty").checked,
+        header: document.getElementById("o-header").checked,
+        width:  document.getElementById("o-width").checked,
+        freeze: document.getElementById("o-freeze").checked,
+        filter: document.getElementById("o-filter").checked,
+        totals: document.getElementById("o-totals").checked,
+        borders:document.getElementById("o-borders").checked
+      };
+
+      try {
+        setProgress(10,"Lecture du fichier…");
+        const { wb, ws } = await loadWorkbook(selectedFile);
+
+        let colCount = ws.actualColumnCount || ws.columnCount || 0;
+        if(colCount<1 || ws.actualRowCount<1) throw new Error("le fichier semble vide");
+
+        // 1) lignes vides
+        if(opt.empty){
+          setProgress(30,"Suppression des lignes vides…");
+          for(let r=ws.actualRowCount; r>=1; r--){
+            const row=ws.getRow(r); let blank=true;
+            for(let c=1;c<=colCount;c++){ const v=row.getCell(c).value; if(v!=null && String(v).trim()!==""){ blank=false; break; } }
+            if(blank) ws.spliceRows(r,1);
+          }
+        }
+
+        // 2) en-têtes
+        if(opt.header){
+          setProgress(45,"Mise en évidence des en-têtes…");
+          ws.getRow(1).eachCell({includeEmpty:true}, cell=>{
+            cell.font={ bold:true, color:{argb:"FFFFFFFF"} };
+            cell.fill={ type:"pattern", pattern:"solid", fgColor:{argb:GREEN} };
+            cell.alignment={ vertical:"middle" };
+          });
+          ws.getRow(1).height=20;
+        }
+
+        // 3) largeurs
+        if(opt.width){
+          setProgress(58,"Ajustement des largeurs…");
+          for(let c=1;c<=colCount;c++){
+            const col=ws.getColumn(c); let m=8;
+            col.eachCell({includeEmpty:false}, cell=>{ const l=String(cell.value==null?"":cell.value).length; if(l>m) m=l; });
+            col.width=Math.min(m+2,60);
+          }
+        }
+
+        // 4) figer + 5) filtres
+        if(opt.freeze) ws.views=[{ state:"frozen", ySplit:1 }];
+        if(opt.filter) ws.autoFilter={ from:{row:1,column:1}, to:{row:1,column:colCount} };
+
+        // 6) totaux
+        if(opt.totals){
+          setProgress(72,"Calcul des totaux…");
+          const lastData=ws.actualRowCount; const sums={}; let any=false;
+          for(let c=1;c<=colCount;c++){
+            let s=0, has=false;
+            for(let r=2;r<=lastData;r++){ const v=ws.getRow(r).getCell(c).value; if(typeof v==="number"){ s+=v; has=true; } }
+            if(has){ sums[c]=Math.round(s*100)/100; any=true; }
+          }
+          if(any){
+            const tr=ws.addRow([]); tr.getCell(1).value="Total";
+            Object.keys(sums).forEach(c=>{ tr.getCell(Number(c)).value=sums[c]; });
+            tr.eachCell({includeEmpty:false}, cell=>{ cell.font={bold:true}; });
+          }
+        }
+
+        // 7) bordures
+        if(opt.borders){
+          setProgress(84,"Application des bordures…");
+          const last=ws.actualRowCount;
+          for(let r=1;r<=last;r++){ for(let c=1;c<=colCount;c++){
+            ws.getRow(r).getCell(c).border={ top:thin(), left:thin(), bottom:thin(), right:thin() };
+          }}
+        }
+
+        setProgress(94,"Génération du fichier…");
+        const buf = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buf], { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+        const url = URL.createObjectURL(blob);
+        const base = selectedFile.name.replace(/\.(xlsx|csv)$/i,"");
+        const outName = base + "-mis-en-forme.xlsx";
+
+        setProgress(100,"Terminé.");
+        try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"excel-formatter"})}).catch(function(){});}catch(e){}
+        resEl.innerHTML =
+          '<div class="results"><div class="results-head">' +
+            '<div class="summary"><span>'+ws.actualRowCount+'</span> lignes · '+colCount+' colonnes mises en forme</div>' +
+            '<a class="download" href="'+url+'" download="'+esc(outName)+'">⬇ Télécharger le .xlsx ('+fmtSize(blob.size)+')</a>' +
+          '</div></div>';
+
+      } catch(err){
+        console.error(err);
+        progEl.hidden=true;
+        showMessage("err","Impossible de traiter ce fichier : "+esc(err.message||String(err))+
+          ". Vérifiez qu'il s'agit d'un .xlsx ou .csv valide, ou testez depuis l'adresse en ligne du site.");
+      } finally {
+        busy=false; runEl.textContent="Mettre en forme"; runEl.disabled=!selectedFile;
+      }
+    });
+
+  })();
+  </script>
+</body>
+</html>

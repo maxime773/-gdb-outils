@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overview — Gaz de Bordeaux</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="chart.min.js"></script>
+  <style>
+    .kpis{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px}
+    .kpi{background:var(--steel);color:var(--paper);border-radius:var(--radius);padding:22px 24px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .kpi .lab{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.8}
+    .kpi .big{font-size:2.2rem;font-weight:800;letter-spacing:-.02em;margin-top:8px;line-height:1}
+    .kpi .sub{font-size:.95rem;opacity:.85;margin-top:6px}
+    .kpi .sub b{color:var(--signal)}
+    @media(max-width:620px){.kpis{grid-template-columns:1fr}}
+
+    .assume{margin-top:24px;background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:16px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+    .assume .al{font-family:var(--mono);font-size:12px;color:var(--slate)}
+    .assume input{width:80px;padding:7px 9px;border:1px solid var(--line-2);border-radius:4px;font-family:var(--mono);font-size:13px;text-align:right}
+    .assume input:focus{outline:none;border-color:var(--signal)}
+
+    .tblwrap{margin-top:22px;background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);overflow:hidden}
+    table.ov{width:100%;border-collapse:collapse;font-size:.9rem}
+    table.ov th{text-align:left;font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);padding:12px 14px;border-bottom:1px solid var(--line-2);background:var(--paper)}
+    table.ov th.r,table.ov td.r{text-align:right}
+    table.ov td{padding:11px 14px;border-bottom:1px solid var(--line)}
+    table.ov tr:last-child td{border-bottom:none}
+    table.ov td .mininput{width:56px;padding:4px 6px;border:1px solid var(--line-2);border-radius:4px;font-family:var(--mono);font-size:12px;text-align:right}
+    table.ov tfoot td{font-weight:700;background:var(--paper);border-top:2px solid var(--line-2)}
+    table.ov td .eu{font-weight:700;color:var(--steel)}
+
+    .chartcard{margin-top:22px;background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:18px}
+    .chartcard h3{font-size:1rem;margin-bottom:12px}
+    .chartcard .cwrap{position:relative;height:260px}
+
+    .hint{margin-top:18px;font-family:var(--mono);font-size:12px;color:var(--slate)}
+    .foot-note{margin-top:20px;font-size:.85rem;color:var(--slate);border-top:1px dashed var(--line-2);padding-top:14px}
+  </style>
+</head>
+<body>
+  <div class="wrap tool-page">
+
+    <a class="back" href="index.html">← Catalogue</a>
+
+    <section class="tool-hero">
+      <span class="eyebrow">Overview</span>
+      <h1>Utilisation &amp; temps gagné</h1>
+      <p>Combien de fois chaque outil est utilisé, converti en temps de travail économisé et en euros. Ajustez les hypothèses ci-dessous : les chiffres se recalculent en direct.</p>
+    </section>
+
+    <div class="kpis">
+      <div class="kpi">
+        <div class="lab">Ce mois-ci</div>
+        <div class="big" id="k-month-h">—</div>
+        <div class="sub"><b id="k-month-e">—</b> économisés · <span id="k-month-u">—</span> utilisations</div>
+      </div>
+      <div class="kpi">
+        <div class="lab">Depuis le début</div>
+        <div class="big" id="k-total-h">—</div>
+        <div class="sub"><b id="k-total-e">—</b> économisés · <span id="k-total-u">—</span> utilisations</div>
+      </div>
+    </div>
+
+    <div class="assume">
+      <span class="al">Coût horaire chargé</span>
+      <input type="number" id="rate" value="40" min="0" step="5" /> <span class="al">€ / heure</span>
+      <span class="al" style="margin-left:auto">Temps gagné par usage → ajustable dans le tableau ↓</span>
+    </div>
+
+    <div class="tblwrap">
+      <table class="ov">
+        <thead>
+          <tr>
+            <th>Outil</th>
+            <th class="r">Utilisations (total)</th>
+            <th class="r">dont ce mois</th>
+            <th class="r">Min. / usage</th>
+            <th class="r">Temps gagné</th>
+            <th class="r">€ gagnés</th>
+          </tr>
+        </thead>
+        <tbody id="ov-body"></tbody>
+        <tfoot>
+          <tr>
+            <td>Total</td>
+            <td class="r" id="f-uses">—</td>
+            <td class="r" id="f-month">—</td>
+            <td class="r">—</td>
+            <td class="r" id="f-time">—</td>
+            <td class="r" id="f-eu">—</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="chartcard">
+      <h3>Euros économisés par outil (cumul)</h3>
+      <div class="cwrap"><canvas id="chart"></canvas></div>
+    </div>
+
+    <div class="chartcard" style="margin-top:22px">
+      <h3>Ressenti des utilisateurs <span style="font-weight:400;color:var(--slate);font-size:.85rem">— anonyme, notes sur 5</span></h3>
+      <div id="fb-kpis" style="display:flex;gap:14px;margin:6px 0 16px;flex-wrap:wrap"></div>
+      <div id="fb-table"></div>
+      <p class="hint" id="fb-hint"></p>
+    </div>
+
+    <p class="hint" id="hint">Chargement des données…</p>
+
+    <div class="foot-note">
+      Les montants sont des estimations, fondées sur des hypothèses que vous définissez (temps gagné par usage, coût horaire chargé).
+      Ils servent à objectiver l'impact, pas à produire une comptabilité exacte.
+    </div>
+
+    <div class="colophon" style="margin-top:30px">
+      <span>Gaz de Bordeaux — Overview</span>
+      <span>Comptage local à la plateforme · aucune donnée personnelle</span>
+    </div>
+
+  </div>
+
+  <script>
+  (function(){
+    "use strict";
+
+    // ================== HYPOTHÈSES PAR DÉFAUT — À AJUSTER ==================
+    // Pour chaque outil : le libellé affiché et le temps (en minutes) que son
+    // usage fait gagner par rapport à la même tâche faite à la main.
+    var CONFIG = {
+      hourlyCost: 40, // € / heure (coût chargé) — modifiable aussi en direct sur la page
+      tools: {
+        "pdf-splitter":       { label: "Découpeur de PDF",              minutes: 10 },
+        "pdf-fusion":         { label: "Fusionneur de PDF",             minutes: 8  },
+        "excel-formatter":    { label: "Mise en forme Excel",           minutes: 15 },
+        "excel-remplacement": { label: "Remplacement par correspondance", minutes: 20 },
+        "pdf-dataviz":        { label: "PDF vers visualisation",        minutes: 25 },
+        "gestion-contact":    { label: "Gestion de contact",           minutes: 5  }
+      }
+    };
+    // ======================================================================
+
+    var stats = {};
+    var chart = null;
+    var currentMonth = new Date().toISOString().slice(0,7);
+    var PALETTE = ["#0B3A67","#EF7D00","#2C6DA3","#F5A623","#6FA8D6"];
+    var DEFAULT_MINUTES = 10; // temps par défaut pour un outil pas encore décrit dans CONFIG
+    function pretty(id){ return id.replace(/[-_]+/g," ").replace(/\b\w/g,function(c){return c.toUpperCase();}); }
+    function cfgFor(id){ return CONFIG.tools[id] || { label: pretty(id), minutes: DEFAULT_MINUTES }; }
+
+    var rateEl = document.getElementById("rate");
+    rateEl.value = CONFIG.hourlyCost;
+
+    function fmtH(mins){
+      var h = mins/60;
+      if(h < 1) return Math.round(mins) + " min";
+      return (Math.round(h*10)/10).toString().replace(".",",") + " h";
+    }
+    function fmtE(v){ return Math.round(v).toLocaleString("fr-FR") + " €"; }
+
+    function totalUses(counts){ var s=0; for(var m in counts){ s += counts[m]||0; } return s; }
+
+    function render(){
+      var rate = parseFloat(rateEl.value) || 0;
+      var body = document.getElementById("ov-body");
+      body.innerHTML = "";
+
+      var ids = Object.keys(CONFIG.tools);
+      Object.keys(stats).forEach(function(id){ if(ids.indexOf(id) < 0) ids.push(id); });
+      var sumUses=0, sumMonth=0, sumMin=0, sumEu=0;
+      var chartLabels=[], chartData=[];
+
+      ids.forEach(function(id){
+        var cfg = cfgFor(id);
+        var counts = stats[id] || {};
+        var tUses = totalUses(counts);
+        var mUses = counts[currentMonth] || 0;
+
+        // minutes/usage : lu depuis l'input de la ligne s'il existe déjà, sinon défaut
+        var minInput = document.getElementById("min-"+id);
+        var mins = minInput ? (parseFloat(minInput.value)||0) : cfg.minutes;
+
+        var savedMin = tUses * mins;
+        var savedEu = (savedMin/60) * rate;
+
+        sumUses += tUses; sumMonth += mUses; sumMin += savedMin; sumEu += savedEu;
+        chartLabels.push(cfg.label); chartData.push(Math.round(savedEu));
+
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          '<td>'+cfg.label+'</td>'+
+          '<td class="r">'+tUses+'</td>'+
+          '<td class="r">'+mUses+'</td>'+
+          '<td class="r"><input class="mininput" type="number" id="min-'+id+'" value="'+mins+'" min="0" step="1"></td>'+
+          '<td class="r">'+fmtH(savedMin)+'</td>'+
+          '<td class="r"><span class="eu">'+fmtE(savedEu)+'</span></td>';
+        body.appendChild(tr);
+      });
+
+      // rebrancher les inputs minutes (recréés à chaque render)
+      ids.forEach(function(id){
+        var el = document.getElementById("min-"+id);
+        if(el && !el._wired){ el._wired = true; el.addEventListener("input", render); }
+      });
+
+      // totaux
+      document.getElementById("f-uses").textContent = sumUses;
+      document.getElementById("f-month").textContent = sumMonth;
+      document.getElementById("f-time").textContent = fmtH(sumMin);
+      document.getElementById("f-eu").textContent = fmtE(sumEu);
+
+      // KPIs — ce mois
+      var monthMin=0, monthEu=0;
+      ids.forEach(function(id){
+        var mUses = (stats[id]||{})[currentMonth] || 0;
+        var el = document.getElementById("min-"+id);
+        var mins = el ? (parseFloat(el.value)||0) : cfgFor(id).minutes;
+        monthMin += mUses*mins; monthEu += (mUses*mins/60)*rate;
+      });
+      document.getElementById("k-month-h").textContent = fmtH(monthMin);
+      document.getElementById("k-month-e").textContent = fmtE(monthEu);
+      document.getElementById("k-month-u").textContent = sumMonth;
+      document.getElementById("k-total-h").textContent = fmtH(sumMin);
+      document.getElementById("k-total-e").textContent = fmtE(sumEu);
+      document.getElementById("k-total-u").textContent = sumUses;
+
+      // graphique
+      var ctx = document.getElementById("chart").getContext("2d");
+      if(chart){ chart.data.labels=chartLabels; chart.data.datasets[0].data=chartData; chart.update(); }
+      else {
+        chart = new Chart(ctx, {
+          type:"bar",
+          data:{ labels:chartLabels, datasets:[{ data:chartData, backgroundColor:PALETTE[0] }] },
+          options:{ responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{ display:false } },
+            scales:{ y:{ beginAtZero:true, ticks:{ callback:function(v){ return v+" €"; } } } } }
+        });
+      }
+    }
+
+    rateEl.addEventListener("input", render);
+
+    // charger les compteurs
+    fetch("/.netlify/functions/stats", { cache:"no-store" })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        stats = data || {};
+        var any = Object.keys(stats).length > 0;
+        document.getElementById("hint").textContent = any
+          ? "Données à jour. Ajustez les minutes par outil ou le coût horaire pour affiner l'estimation."
+          : "Aucune utilisation enregistrée pour l'instant — les compteurs se rempliront dès les premiers usages des outils.";
+        render();
+      })
+      .catch(function(){
+        document.getElementById("hint").textContent = "Compteurs indisponibles (le suivi n'est actif qu'une fois le site déployé avec ses fonctions). Affichage à zéro.";
+        render();
+      });
+
+    // ---- Ressenti utilisateurs (anonyme) ----
+    function avg(sum,n){ return n>0 ? (Math.round((sum/n)*10)/10).toString().replace(".",",") : "—"; }
+    function renderFeedback(fb){
+      var ids = Object.keys(fb);
+      var kpis = document.getElementById("fb-kpis");
+      var table = document.getElementById("fb-table");
+      var hint = document.getElementById("fb-hint");
+      var totN=0, totBe=0, totUt=0;
+      ids.forEach(function(id){ var t=fb[id]||{}; totN+=(t.n||0); totBe+=(t.be||0); totUt+=(t.ut||0); });
+      if(totN===0){
+        kpis.innerHTML=""; table.innerHTML="";
+        hint.textContent = "Aucune réponse pour l'instant — le sondage s'affiche automatiquement après 3 utilisations d'un outil.";
+        return;
+      }
+      function box(bg,lab,val){
+        return '<div style="background:'+bg+';border:1px solid var(--line-2);border-radius:8px;padding:12px 16px">'+
+          '<div style="font-family:var(--mono);font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.08em">'+lab+'</div>'+
+          '<div style="font-size:1.5rem;font-weight:800;color:var(--steel)">'+val+'</div></div>';
+      }
+      kpis.innerHTML =
+        box("var(--ok-soft)","Bien-être moyen", avg(totBe,totN)+' <span style="font-size:.9rem;font-weight:400;color:var(--slate)">/5</span>')+
+        box("var(--signal-soft)","Utilité moyenne", avg(totUt,totN)+' <span style="font-size:.9rem;font-weight:400;color:var(--slate)">/5</span>')+
+        box("#fff","Réponses", totN);
+      var rows = ids.map(function(id){
+        var t=fb[id]||{};
+        return '<tr><td>'+cfgFor(id).label+'</td><td class="r">'+(t.n||0)+'</td><td class="r">'+avg(t.be,t.n)+'</td><td class="r">'+avg(t.ut,t.n)+'</td></tr>';
+      }).join("");
+      table.innerHTML = '<div class="tblwrap" style="margin-top:0"><table class="ov"><thead><tr><th>Outil</th><th class="r">Réponses</th><th class="r">Bien-être /5</th><th class="r">Utilité /5</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+      hint.textContent = "";
+    }
+    fetch("/.netlify/functions/feedback", { cache:"no-store" })
+      .then(function(r){ return r.json(); })
+      .then(function(fb){ renderFeedback(fb||{}); })
+      .catch(function(){ renderFeedback({}); });
+
+  })();
+  </script>
+</body>
+</html>

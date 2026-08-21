@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<!-- OUTIL
+     titre: Fusionneur de PDF
+     description: Réunit plusieurs PDF en un seul document, dans l'ordre de votre choix.
+     categorie: PDF
+     ia: non
+-->
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fusionneur de PDF — Gaz de Bordeaux</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="pdf-lib.min.js"></script>
+  <style>
+    .flist { margin-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+    .frow {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; border: 1px solid var(--line-2); border-radius: var(--radius);
+      padding: 10px 12px;
+    }
+    .frow.bad { border-color: #F3C7C2; background: #FCEBEA; }
+    .frow .idx { font-family: var(--mono); font-size: 12px; color: var(--slate); width: 22px; flex: none; text-align: right; }
+    .frow .fmain { flex: 1; min-width: 0; }
+    .frow .fname { font-weight: 600; font-size: .92rem; word-break: break-all; }
+    .frow .fsub { font-family: var(--mono); font-size: 11.5px; color: var(--slate); margin-top: 2px; }
+    .frow .facts { display: flex; gap: 4px; flex: none; }
+    .iconbtn {
+      border: 1px solid var(--line-2); background: var(--paper); border-radius: var(--radius);
+      width: 30px; height: 30px; cursor: pointer; font-size: 14px; line-height: 1;
+      color: var(--ink); display: inline-flex; align-items: center; justify-content: center;
+    }
+    .iconbtn:hover:not(:disabled) { border-color: var(--ink); }
+    .iconbtn:disabled { opacity: .35; cursor: not-allowed; }
+    .iconbtn.rm:hover { border-color: var(--danger); color: var(--danger); }
+    .outname { margin-top: 18px; }
+    .outname label { font-family: var(--mono); font-size: 12px; color: var(--slate); display: block; margin-bottom: 6px; }
+    .outname input {
+      width: 100%; padding: 11px 12px; border: 1px solid var(--line-2); border-radius: var(--radius);
+      font-family: var(--mono); font-size: 13px; color: var(--ink); background: #fff;
+    }
+    .outname input:focus { outline: none; border-color: var(--signal); }
+  </style>
+  <script src="feedback.js"></script>
+</head>
+<body>
+  <div class="wrap tool-page">
+
+    <a class="back" href="index.html">← Catalogue</a>
+
+    <section class="tool-hero">
+      <span class="eyebrow">PDF · 02</span>
+      <h1>Fusionneur de PDF</h1>
+      <p>Ajoutez plusieurs PDF, remettez-les dans l'ordre voulu, et récupérez un seul document. Tout se passe sur votre poste — aucun fichier n'est envoyé ailleurs.</p>
+    </section>
+
+    <div class="panel">
+      <div class="panel-strip">
+        <span class="k">TRAITEMENT</span> local · aucun envoi réseau · ordre personnalisable
+      </div>
+      <div class="panel-body">
+
+        <div class="drop" id="drop" tabindex="0" role="button" aria-label="Ajouter des PDF">
+          <div class="drop-icon">📎</div>
+          <div class="drop-title">Glissez vos PDF ici</div>
+          <div class="drop-hint">ou cliquez pour en ajouter (plusieurs à la fois)</div>
+          <input type="file" id="file" accept="application/pdf,.pdf" multiple hidden />
+        </div>
+
+        <div class="flist" id="flist"></div>
+
+        <div class="outname" id="outname-wrap" hidden>
+          <label for="outname">Nom du fichier fusionné</label>
+          <input type="text" id="outname" value="document-fusionne.pdf" spellcheck="false" />
+        </div>
+
+        <button class="run" id="run" disabled>Fusionner les PDF</button>
+
+        <div class="progress" id="progress" hidden>
+          <div class="track"><div class="fill" id="fill"></div></div>
+          <div class="pstatus" id="pstatus"></div>
+        </div>
+
+        <div id="messages"></div>
+        <div id="results"></div>
+
+      </div>
+    </div>
+
+    <div class="colophon">
+      <span>Gaz de Bordeaux — PDF · 02</span>
+      <span>pdf-lib — embarqué</span>
+    </div>
+
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    const { PDFDocument } = PDFLib;
+
+    const dropEl   = document.getElementById("drop");
+    const fileEl   = document.getElementById("file");
+    const listEl   = document.getElementById("flist");
+    const runEl    = document.getElementById("run");
+    const progEl   = document.getElementById("progress");
+    const fillEl   = document.getElementById("fill");
+    const statusEl = document.getElementById("pstatus");
+    const msgEl    = document.getElementById("messages");
+    const resEl    = document.getElementById("results");
+    const outWrap  = document.getElementById("outname-wrap");
+    const outEl    = document.getElementById("outname");
+
+    let items = [];      // { id, file, name, size, pages, status: 'loading'|'ok'|'bad' }
+    let seq = 0;
+    let busy = false;
+
+    function fmtSize(b) {
+      if (b < 1024) return b + " o";
+      if (b < 1048576) return (b / 1024).toFixed(0) + " Ko";
+      return (b / 1048576).toFixed(1) + " Mo";
+    }
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+    }
+    function clearMessages() { msgEl.innerHTML = ""; }
+    function showMessage(kind, html) {
+      const d = document.createElement("div");
+      d.className = "notice " + kind; d.innerHTML = html; msgEl.appendChild(d);
+    }
+    function setProgress(pct, text) {
+      progEl.hidden = false;
+      fillEl.style.width = Math.max(0, Math.min(100, pct)) + "%";
+      statusEl.textContent = text;
+    }
+
+    function okItems() { return items.filter(it => it.status === "ok"); }
+    function anyLoading() { return items.some(it => it.status === "loading"); }
+
+    function refreshRunState() {
+      outWrap.hidden = items.length === 0;
+      runEl.disabled = busy || anyLoading() || okItems().length < 2;
+      runEl.textContent = busy ? "Fusion en cours…"
+        : (okItems().length < 2 ? "Ajoutez au moins 2 PDF" : "Fusionner les PDF");
+    }
+
+    function render() {
+      if (items.length === 0) { listEl.innerHTML = ""; refreshRunState(); return; }
+      listEl.innerHTML = items.map((it, i) => {
+        const sub = it.status === "loading" ? "lecture…"
+                  : it.status === "bad" ? "PDF illisible — sera ignoré"
+                  : (it.pages + " page" + (it.pages > 1 ? "s" : "") + " · " + fmtSize(it.size));
+        return '' +
+          '<div class="frow ' + (it.status === "bad" ? "bad" : "") + '">' +
+            '<span class="idx">' + (i + 1) + '</span>' +
+            '<div class="fmain"><div class="fname">' + esc(it.name) + '</div>' +
+              '<div class="fsub">' + sub + '</div></div>' +
+            '<div class="facts">' +
+              '<button class="iconbtn" data-up="' + it.id + '" ' + (i === 0 ? "disabled" : "") + ' aria-label="Monter" title="Monter">▲</button>' +
+              '<button class="iconbtn" data-down="' + it.id + '" ' + (i === items.length - 1 ? "disabled" : "") + ' aria-label="Descendre" title="Descendre">▼</button>' +
+              '<button class="iconbtn rm" data-rm="' + it.id + '" aria-label="Retirer" title="Retirer">✕</button>' +
+            '</div>' +
+          '</div>';
+      }).join("");
+      refreshRunState();
+    }
+
+    listEl.addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b || busy) return;
+      const up = b.getAttribute("data-up"), down = b.getAttribute("data-down"), rm = b.getAttribute("data-rm");
+      if (rm) { items = items.filter(it => String(it.id) !== rm); render(); resEl.innerHTML = ""; return; }
+      const id = up || down;
+      const idx = items.findIndex(it => String(it.id) === id);
+      if (idx < 0) return;
+      const to = up ? idx - 1 : idx + 1;
+      if (to < 0 || to >= items.length) return;
+      const tmp = items[idx]; items[idx] = items[to]; items[to] = tmp;
+      render(); resEl.innerHTML = "";
+    });
+
+    async function addFiles(fileList) {
+      clearMessages(); resEl.innerHTML = "";
+      const arr = Array.from(fileList || []);
+      for (const f of arr) {
+        if (f.type !== "application/pdf" && !/\.pdf$/i.test(f.name)) {
+          showMessage("warn", "Ignoré (pas un PDF) : <strong>" + esc(f.name) + "</strong>");
+          continue;
+        }
+        const it = { id: ++seq, file: f, name: f.name, size: f.size, pages: 0, status: "loading" };
+        items.push(it);
+      }
+      render();
+      // compter les pages (et détecter les fichiers illisibles)
+      for (const it of items.filter(x => x.status === "loading")) {
+        try {
+          const buf = await it.file.arrayBuffer();
+          const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+          it.pages = doc.getPageCount(); it.status = "ok";
+        } catch (err) { it.status = "bad"; }
+        render();
+      }
+    }
+
+    dropEl.addEventListener("click", () => { if (!busy) fileEl.click(); });
+    dropEl.addEventListener("keydown", (e) => {
+      if ((e.key === "Enter" || e.key === " ") && !busy) { e.preventDefault(); fileEl.click(); }
+    });
+    fileEl.addEventListener("change", (e) => { addFiles(e.target.files); fileEl.value = ""; });
+
+    ["dragenter", "dragover"].forEach(ev =>
+      dropEl.addEventListener(ev, (e) => { e.preventDefault(); if (!busy) dropEl.classList.add("over"); }));
+    ["dragleave", "drop"].forEach(ev =>
+      dropEl.addEventListener(ev, (e) => { e.preventDefault(); dropEl.classList.remove("over"); }));
+    dropEl.addEventListener("drop", (e) => { if (!busy) addFiles(e.dataTransfer.files); });
+
+    runEl.addEventListener("click", async () => {
+      const ok = okItems();
+      if (ok.length < 2 || busy) return;
+      busy = true; clearMessages(); resEl.innerHTML = ""; refreshRunState();
+
+      try {
+        const out = await PDFDocument.create();
+        let done = 0;
+        for (const it of ok) {
+          setProgress((done / ok.length) * 92, "Ajout de « " + it.name + " »…");
+          const buf = await it.file.arrayBuffer();
+          const src = await PDFDocument.load(buf, { ignoreEncryption: true });
+          const pages = await out.copyPages(src, src.getPageIndices());
+          pages.forEach(p => out.addPage(p));
+          done++;
+        }
+        setProgress(96, "Finalisation…");
+        const bytes = await out.save();
+        const blob = new Blob([bytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+
+        let name = (outEl.value || "document-fusionne").trim().replace(/[\\/:*?"<>|]/g, "_");
+        if (!/\.pdf$/i.test(name)) name += ".pdf";
+
+        setProgress(100, "Terminé — " + out.getPageCount() + " pages.");
+        try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"pdf-fusion"})}).catch(function(){});}catch(e){}
+        resEl.innerHTML =
+          '<div class="results"><div class="results-head">' +
+            '<div class="summary"><span>' + ok.length + '</span> fichiers réunis · ' + out.getPageCount() + ' pages</div>' +
+            '<a class="download" href="' + url + '" download="' + esc(name) + '">⬇ Télécharger le PDF (' + fmtSize(blob.size) + ')</a>' +
+          '</div></div>';
+      } catch (err) {
+        console.error(err);
+        progEl.hidden = true;
+        showMessage("err", "Erreur pendant la fusion : " + esc(err.message || String(err)) +
+          ". Réessayez, ou testez depuis l'adresse en ligne du site.");
+      } finally {
+        busy = false; refreshRunState();
+      }
+    });
+
+    render();
+  })();
+  </script>
+</body>
+</html>

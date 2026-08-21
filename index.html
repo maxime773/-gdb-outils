@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gaz de Bordeaux — Boîte à outils interne</title>
+  <meta name="description" content="Outils internes d'automatisation documentaire — découpe de PDF, mise en forme Excel, visualisation. Traitement local, aucune donnée envoyée ailleurs." />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="catalogue.js"></script>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" id="b-mark">GdB</span>
+        <span class="brand-name" id="b-name">Gaz de Bordeaux</span>
+        <span class="brand-tag" id="b-tag"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <a href="overview.html" style="font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--steel);text-decoration:none;border:1px solid var(--line-2);padding:6px 12px;border-radius:4px">📊 Overview</a>
+        <span class="brand-tag" id="b-place"></span>
+      </div>
+    </header>
+
+    <section class="hero">
+      <span class="eyebrow" id="h-eyebrow"></span>
+      <h1 id="h-title"></h1>
+      <p id="h-lead"></p>
+      <p class="assurance"><span class="dot"></span> <span id="h-assurance"></span></p>
+    </section>
+
+    <div class="rail">
+      <h2>Outils de la plateforme</h2>
+      <span class="count" id="r-count"></span>
+    </div>
+
+    <section class="catalogue" id="catalogue"></section>
+
+    <section class="band">
+      <div class="band-grid">
+        <div class="band-item">
+          <h4>01 — Local d'abord</h4>
+          <p>La plupart des outils tournent entièrement dans le navigateur. Aucun serveur, aucune clé, aucun coût à l'usage — et vos documents ne quittent pas votre poste.</p>
+        </div>
+        <div class="band-item">
+          <h4>02 — Un outil qui marche ? On le partage</h4>
+          <p>Vous avez fabriqué un artefact utile dans Claude ? Envoyez-le au référent de la plateforme : après validation, il rejoint cette page pour tout le monde.</p>
+        </div>
+        <div class="band-item">
+          <h4>03 — Quand l'IA sert vraiment</h4>
+          <p>On ne fait appel à un modèle que là où il apporte quelque chose — comprendre un document libre, par exemple. Le reste, c'est du code.</p>
+        </div>
+      </div>
+      <div class="colophon">
+        <span id="c-left">Gaz de Bordeaux — boîte à outils interne</span>
+        <span>Hébergé en statique · traitement local</span>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+    var data = window.ATELIER || { brand: {}, tools: [] };
+    var b = data.brand || {};
+    var entries = data.tools || [];
+
+    function set(id, html) { var el = document.getElementById(id); if (el) el.innerHTML = html; }
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function stripAccents(s) {
+      return s && s.normalize ? s.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : (s || "");
+    }
+    function pad(n) { return n < 10 ? "0" + n : "" + n; }
+    function pretty(fn) {
+      return String(fn).replace(/\.html?$/i, "").replace(/[-_]+/g, " ")
+        .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    }
+
+    // --- Marque + hero ---
+    set("b-mark", b.mark || ""); set("b-name", b.name || "");
+    set("b-tag", b.tagline || ""); set("b-place", b.place || "");
+    set("h-eyebrow", b.heroEyebrow || ""); set("h-title", b.heroTitle || "");
+    set("h-lead", b.heroLead || ""); set("h-assurance", b.heroAssurance || "");
+    document.title = (b.name ? b.name + " — " : "") + "Boîte à outils interne";
+    set("c-left", (b.name || "") + " — boîte à outils interne");
+
+    var host = document.getElementById("catalogue");
+    if (host) host.innerHTML = '<p class="loading">Chargement des outils…</p>';
+
+    // --- Lecture de l'en-tête <!-- OUTIL ... --> ---
+    function parseHeader(text) {
+      var m = text.match(/<!--\s*OUTIL\b([\s\S]*?)-->/i);
+      if (!m) return null;
+      var out = {};
+      m[1].split(/\r?\n/).forEach(function (line) {
+        var mm = line.match(/^\s*([A-Za-zÀ-ÿ]+)\s*:\s*(.+?)\s*$/);
+        if (mm) out[stripAccents(mm[1]).toLowerCase()] = mm[2];
+      });
+      return out;
+    }
+
+    function resolve(entry) {
+      if (entry && typeof entry === "object") {
+        return Promise.resolve({
+          category: (entry.category || "AUTRE"),
+          title: entry.title || "", description: entry.description || "",
+          ia: !!entry.ia, ready: false, href: null, warn: false
+        });
+      }
+      var name = String(entry);
+      var href = name;
+      return fetch(href).then(function (r) { if (!r.ok) throw new Error("http " + r.status); return r.text(); })
+        .then(function (txt) {
+          var h = parseHeader(txt);
+          if (!h) return { category: "AUTRE", title: pretty(name),
+            description: "En-tête OUTIL manquant dans le fichier — à compléter.",
+            ia: false, ready: true, href: href, warn: true };
+          return {
+            category: h.categorie ? stripAccents(h.categorie).toUpperCase().trim() : "AUTRE",
+            title: h.titre || pretty(name),
+            description: h.description || "",
+            ia: /^\s*o/i.test(h.ia || ""),
+            ready: true, href: href, warn: false
+          };
+        })
+        .catch(function () {
+          return { category: "AUTRE", title: pretty(name),
+            description: "Fichier introuvable — vérifiez le nom dans catalogue.js.",
+            ia: false, ready: false, href: null, warn: true };
+        });
+    }
+
+    Promise.all(entries.map(resolve)).then(function (items) {
+      // numérotation par catégorie, dans l'ordre de la liste
+      var counters = {};
+      items.forEach(function (it) {
+        counters[it.category] = (counters[it.category] || 0) + 1;
+        it.ref = it.category + " · " + pad(counters[it.category]);
+      });
+
+      var n = items.length;
+      set("r-count", (n < 10 ? "0" + n : "" + n) + (n > 1 ? " références" : " référence"));
+
+      var html = items.map(function (it) {
+        var pills = it.ready ? '<span class="pill ready">Prêt</span>' : '<span class="pill soon">Bientôt</span>';
+        if (it.ia) pills += '<span class="pill ia">IA</span>';
+        var meta = it.ia ? '<p class="meta">→ nécessite un appel IA (backend)</p>' : "";
+        var warn = it.warn ? '<p class="meta warn-meta">⚠ à vérifier</p>' : "";
+        var cta = (it.ready && it.href)
+          ? '<a class="cta" href="' + esc(it.href) + '">Ouvrir l\'outil <span class="arrow">→</span></a>'
+          : '<span class="cta disabled">En préparation</span>';
+        return '<article class="tool' + (it.ready ? " ready" : "") + '">' +
+                 '<div class="tool-head"><span class="ref">' + esc(it.ref) + '</span>' +
+                   '<span class="pill-group">' + pills + '</span></div>' +
+                 '<h3>' + esc(it.title) + '</h3>' +
+                 '<p class="desc">' + esc(it.description) + '</p>' +
+                 meta + warn + cta +
+               '</article>';
+      }).join("");
+      if (host) host.innerHTML = html;
+    });
+  })();
+  </script>
+</body>
+</html>

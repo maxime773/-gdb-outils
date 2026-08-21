@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<!-- OUTIL
+     titre: Gestion de contact
+     description: Résume un email envoyé à un client en une note de contact factuelle pour le dossier.
+     categorie: AUTRE
+     ia: oui
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestion de contact</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Styles propres à l'outil — s'appuient sur les variables de styles.css, avec repli */
+  .gc-wrap { max-width: 640px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+  .gc-back { display:inline-block; font-size:13px; color:var(--steel,#0B3A67); text-decoration:none; margin-bottom:1.5rem; }
+  .gc-back:hover { text-decoration:underline; }
+  .gc-head { margin-bottom: 2rem; }
+  .gc-tag { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted,#888780); margin-bottom:6px; }
+  .gc-head h1 { font-size:22px; font-weight:600; letter-spacing:-0.02em; color:var(--ink,#1a1a18); }
+  .gc-card { background:#fff; border:1px solid var(--line,#E0DDD6); border-radius:12px; padding:1.5rem; margin-bottom:1rem; }
+  .gc-label { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted,#888780); margin-bottom:8px; }
+  textarea, .gc-result {
+    width:100%; font-family:inherit; font-size:14px; line-height:1.65;
+    color:var(--ink,#1a1a18); background:var(--paper,#F5F3EE);
+    border:1px solid var(--line,#E0DDD6); border-radius:8px; padding:12px 14px;
+    outline:none; resize:vertical;
+  }
+  textarea:focus { border-color:var(--muted,#888780); }
+  .gc-actions { display:flex; justify-content:flex-end; margin-top:12px; }
+  .gc-btn {
+    font-family:inherit; font-size:13px; font-weight:500;
+    background:var(--ink,#1a1a18); color:var(--paper,#F5F3EE);
+    border:none; border-radius:8px; padding:9px 20px; cursor:pointer;
+  }
+  .gc-btn:hover { opacity:.9; }
+  .gc-btn:disabled { background:#B4B2A9; cursor:default; }
+  .gc-spinner { display:none; font-size:12px; color:var(--muted,#888780); margin-top:8px; }
+  .gc-spinner.on { display:block; }
+  .gc-error { display:none; font-size:13px; color:#9B2C2C; margin-top:8px; }
+  .gc-error.on { display:block; }
+  #gc-result-section { display:none; }
+  .gc-result { min-height:80px; background:#EDEAE3; border-color:#D3D1C7; resize:none; }
+  .gc-result-actions { display:flex; justify-content:flex-end; margin-top:10px; }
+  .gc-copy {
+    font-size:12px; background:transparent; color:#5F5E5A;
+    border:1px solid #D3D1C7; border-radius:8px; padding:7px 14px; cursor:pointer;
+  }
+  .gc-copy:hover { background:#E0DDD6; color:var(--ink,#1a1a18); }
+  .gc-copy.done { color:#3B6D11; border-color:#97C459; background:#EAF3DE; }
+</style>
+  <script src="feedback.js"></script>
+</head>
+<body>
+<div class="gc-wrap">
+  <a class="gc-back" href="index.html">← Retour aux outils</a>
+
+  <div class="gc-head">
+    <div class="gc-tag">Outil conseiller</div>
+    <h1>Gestion de contact</h1>
+  </div>
+
+  <div class="gc-card">
+    <div class="gc-label">Email envoyé au client</div>
+    <textarea id="email-input" rows="7" placeholder="Collez ici l'email de réponse que vous avez envoyé au client…"></textarea>
+    <div class="gc-actions">
+      <button class="gc-btn" id="btn-gen">Générer →</button>
+    </div>
+    <div class="gc-spinner" id="spinner">Analyse en cours…</div>
+    <div class="gc-error" id="error"></div>
+  </div>
+
+  <div id="gc-result-section">
+    <div class="gc-card">
+      <div class="gc-label">Note de contact générée</div>
+      <textarea class="gc-result" id="result-box" readonly rows="4"></textarea>
+      <div class="gc-result-actions">
+        <button class="gc-copy" id="btn-copy">Copier</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const emailInput = document.getElementById('email-input');
+  const btnGen = document.getElementById('btn-gen');
+  const spinner = document.getElementById('spinner');
+  const errorBox = document.getElementById('error');
+  const resultSection = document.getElementById('gc-result-section');
+  const resultBox = document.getElementById('result-box');
+  const btnCopy = document.getElementById('btn-copy');
+
+  function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.classList.add('on');
+  }
+  function clearError() {
+    errorBox.textContent = '';
+    errorBox.classList.remove('on');
+  }
+
+  async function generate() {
+    const email = emailInput.value.trim();
+    clearError();
+    if (!email) {
+      showError("Collez d'abord l'email envoyé au client.");
+      return;
+    }
+    btnGen.disabled = true;
+    spinner.classList.add('on');
+    resultSection.style.display = 'none';
+
+    try {
+      const res = await fetch('/.netlify/functions/gestion-contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Erreur du service.');
+      const note = (data.note || '').trim();
+      if (!note) throw new Error('Réponse vide, réessayez.');
+      resultBox.value = note;
+      resultSection.style.display = 'block';
+      try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"gestion-contact"})}).catch(function(){});}catch(e){}
+    } catch (e) {
+      showError(e.message || 'Erreur lors de la génération. Réessayez.');
+    } finally {
+      btnGen.disabled = false;
+      spinner.classList.remove('on');
+    }
+  }
+
+  async function copyResult() {
+    const text = resultBox.value;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      resultBox.select();
+      resultBox.setSelectionRange(0, 99999);
+      document.execCommand('copy');
+      window.getSelection && window.getSelection().removeAllRanges();
+    }
+    btnCopy.textContent = 'Copié !';
+    btnCopy.classList.add('done');
+    setTimeout(() => { btnCopy.textContent = 'Copier'; btnCopy.classList.remove('done'); }, 1800);
+  }
+
+  btnGen.addEventListener('click', generate);
+  btnCopy.addEventListener('click', copyResult);
+  emailInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generate();
+  });
+</script>
+</body>
+</html>

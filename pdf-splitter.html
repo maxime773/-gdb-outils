@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<!-- OUTIL
+     titre: Découpeur de documents PDF
+     description: Sépare un PDF groupé en un fichier par document, nommé automatiquement à partir de son contenu.
+     categorie: PDF
+     ia: non
+-->
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Découpeur de rapports PDF — Atelier IA</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="pdf.min.js"></script>
+  <script src="pdf-lib.min.js"></script>
+  <script src="jszip.min.js"></script>
+  <script src="feedback.js"></script>
+</head>
+<body>
+  <div class="wrap tool-page">
+
+    <a class="back" href="index.html">← Catalogue</a>
+
+    <section class="tool-hero">
+      <span class="eyebrow">PDF · 01</span>
+      <h1>Découpeur de rapports PDF</h1>
+      <p>Déposez un PDF regroupant plusieurs rapports de vérification (VGP). Chaque rapport est isolé dans son propre fichier, nommé <code>VGP_[date]_[identifiant]</code>, et le tout est livré en un .zip.</p>
+    </section>
+
+    <div class="panel">
+      <div class="panel-strip">
+        <span class="k">TRAITEMENT</span> local · aucun envoi réseau · repérage par contenu
+      </div>
+      <div class="panel-body">
+
+        <div class="drop" id="drop" tabindex="0" role="button" aria-label="Déposer ou choisir un PDF">
+          <div class="drop-icon">📄</div>
+          <div class="drop-title">Glissez votre PDF ici</div>
+          <div class="drop-hint">ou cliquez pour choisir le fichier</div>
+          <input type="file" id="file" accept="application/pdf,.pdf" hidden />
+        </div>
+
+        <button class="run" id="run" disabled>Découper le PDF</button>
+
+        <div class="progress" id="progress" hidden>
+          <div class="track"><div class="fill" id="fill"></div></div>
+          <div class="pstatus" id="pstatus"></div>
+        </div>
+
+        <div id="messages"></div>
+        <div id="results"></div>
+
+      </div>
+    </div>
+
+    <div class="colophon">
+      <span>Atelier IA — PDF · 01</span>
+      <span>pdf.js · pdf-lib · JSZip — embarqués</span>
+    </div>
+
+  </div>
+
+  <script>
+  (function () {
+    "use strict";
+
+    // pdf.js : worker embarqué localement
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "pdf.worker.min.js";
+    const { PDFDocument } = PDFLib;
+
+    const dropEl   = document.getElementById("drop");
+    const fileEl   = document.getElementById("file");
+    const runEl    = document.getElementById("run");
+    const progEl   = document.getElementById("progress");
+    const fillEl   = document.getElementById("fill");
+    const statusEl = document.getElementById("pstatus");
+    const msgEl    = document.getElementById("messages");
+    const resEl    = document.getElementById("results");
+
+    let selectedFile = null;
+    let busy = false;
+
+    // ---------- Utilitaires ----------
+    function fmtSize(bytes) {
+      if (bytes < 1024) return bytes + " o";
+      if (bytes < 1048576) return (bytes / 1024).toFixed(0) + " Ko";
+      return (bytes / 1048576).toFixed(1) + " Mo";
+    }
+    function setProgress(pct, text) {
+      progEl.hidden = false;
+      fillEl.style.width = Math.max(0, Math.min(100, pct)) + "%";
+      statusEl.textContent = text;
+    }
+    function clearMessages() { msgEl.innerHTML = ""; }
+    function showMessage(kind, html) {
+      const d = document.createElement("div");
+      d.className = "notice " + kind;
+      d.innerHTML = html;
+      msgEl.appendChild(d);
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+    }
+
+    // ---------- Sélection du fichier ----------
+    function setFile(file) {
+      if (!file) return;
+      if (file.type !== "application/pdf" && !/\.pdf$/i.test(file.name)) {
+        clearMessages();
+        showMessage("err", "Ce fichier n'est pas un PDF. Choisissez un document <strong>.pdf</strong>.");
+        return;
+      }
+      selectedFile = file;
+      resEl.innerHTML = "";
+      progEl.hidden = true;
+      clearMessages();
+      dropEl.classList.add("has");
+      dropEl.innerHTML =
+        '<div class="drop-icon">✅</div>' +
+        '<div class="filemeta"><span class="name">' + escapeHtml(file.name) + '</span> ' +
+        '<span class="size">· ' + fmtSize(file.size) + '</span></div>' +
+        '<button class="link-btn" id="clear" type="button">Choisir un autre fichier</button>';
+      document.getElementById("clear").addEventListener("click", function (e) {
+        e.stopPropagation(); resetDrop();
+      });
+      runEl.disabled = false;
+    }
+
+    function resetDrop() {
+      selectedFile = null;
+      fileEl.value = "";
+      runEl.disabled = true;
+      progEl.hidden = true;
+      resEl.innerHTML = "";
+      clearMessages();
+      dropEl.classList.remove("has");
+      dropEl.innerHTML =
+        '<div class="drop-icon">📄</div>' +
+        '<div class="drop-title">Glissez votre PDF ici</div>' +
+        '<div class="drop-hint">ou cliquez pour choisir le fichier</div>';
+    }
+
+    dropEl.addEventListener("click", () => { if (!busy) fileEl.click(); });
+    dropEl.addEventListener("keydown", (e) => {
+      if ((e.key === "Enter" || e.key === " ") && !busy) { e.preventDefault(); fileEl.click(); }
+    });
+    fileEl.addEventListener("change", (e) => setFile(e.target.files[0]));
+
+    ["dragenter", "dragover"].forEach(ev =>
+      dropEl.addEventListener(ev, (e) => { e.preventDefault(); if (!busy) dropEl.classList.add("over"); })
+    );
+    ["dragleave", "drop"].forEach(ev =>
+      dropEl.addEventListener(ev, (e) => { e.preventDefault(); dropEl.classList.remove("over"); })
+    );
+    dropEl.addEventListener("drop", (e) => {
+      if (busy) return;
+      const f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) setFile(f);
+    });
+
+    // ---------- Détection des rapports ----------
+    // On lit le texte page par page (pdf.js) et on repère le début de chaque
+    // rapport : une page qui contient les trois marqueurs VGP. On en extrait
+    // la date (JJ/MM/AAAA -> AAAAMMJJ) et le N° d'identification.
+    function normalize(t) { return t.replace(/\s+/g, " ").trim(); }
+
+    function extractInfo(text) {
+      const t = normalize(text);
+      const isStart =
+        /Rapport de v[ée]rification/i.test(t) &&
+        /N\s*°?\s*Identification/i.test(t) &&
+        /Date de la v[ée]rification/i.test(t);
+      if (!isStart) return null;
+
+      let date = "";
+      const dm = t.match(/Date de la v[ée]rification\s*:?\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+      if (dm) date = dm[3] + dm[2] + dm[1];
+
+      let id = "";
+      const im = t.match(/N\s*°?\s*Identification\s*:?\s*([A-Za-z0-9._\-]+)/i);
+      if (im) id = im[1];
+
+      return { date: date, id: id };
+    }
+
+    async function detectReports(bytesForPdfjs, onPage) {
+      const pdf = await pdfjsLib.getDocument({ data: bytesForPdfjs }).promise;
+      const total = pdf.numPages;
+      const starts = [];
+      for (let i = 1; i <= total; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const text = content.items.map(it => it.str).join(" ");
+        const info = extractInfo(text);
+        if (info) starts.push({ page: i - 1, date: info.date, id: info.id }); // index 0-based
+        onPage(i, total);
+      }
+      // bornes de fin
+      for (let j = 0; j < starts.length; j++) {
+        starts[j].endPage = (j + 1 < starts.length) ? starts[j + 1].page - 1 : total - 1;
+      }
+      return { starts, total };
+    }
+
+    // ---------- Découpe + zip ----------
+    async function splitAndZip(originalBytes, reports, onSplit) {
+      const src = await PDFDocument.load(originalBytes, { ignoreEncryption: true });
+      const zip = new JSZip();
+      const used = Object.create(null);
+      const rows = [];
+
+      for (let i = 0; i < reports.length; i++) {
+        const r = reports[i];
+        const datePart = r.date || "SANSDATE";
+        const idPart = r.id || "SANSID";
+        let name = "VGP_" + datePart + "_" + idPart;
+        if (used[name] !== undefined) { used[name]++; name = name + "_" + used[name]; }
+        else { used[name] = 0; }
+
+        const out = await PDFDocument.create();
+        const indices = [];
+        for (let p = r.page; p <= r.endPage; p++) indices.push(p);
+        const copied = await out.copyPages(src, indices);
+        copied.forEach(pg => out.addPage(pg));
+        const bytes = await out.save();
+        zip.file(name + ".pdf", bytes);
+
+        rows.push({
+          file: name + ".pdf",
+          pages: (r.page + 1) + "–" + (r.endPage + 1),
+          nb: r.endPage - r.page + 1,
+          missing: (!r.date || !r.id)
+        });
+        onSplit(i + 1, reports.length);
+      }
+
+      const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE" });
+      return { blob, rows };
+    }
+
+    // ---------- Rendu résultats ----------
+    function renderResults(rows, blob, sourceName) {
+      const url = URL.createObjectURL(blob);
+      const base = (sourceName || "rapports").replace(/\.pdf$/i, "");
+      const zipName = base + "_decoupe.zip";
+      const anyMissing = rows.some(r => r.missing);
+
+      let html = '<div class="results">';
+      html += '<div class="results-head">';
+      html += '<div class="summary"><span>' + rows.length + '</span> rapport' + (rows.length > 1 ? "s" : "") + ' généré' + (rows.length > 1 ? "s" : "") + '</div>';
+      html += '<a class="download" href="' + url + '" download="' + escapeHtml(zipName) + '">⬇ Télécharger le .zip (' + fmtSize(blob.size) + ')</a>';
+      html += '</div>';
+
+      html += '<table class="tbl"><thead><tr><th>Fichier</th><th>Pages</th><th>Nb</th></tr></thead><tbody>';
+      rows.forEach(r => {
+        html += '<tr><td class="fname">' + escapeHtml(r.file) +
+                (r.missing ? ' <span class="tag-unknown">(champ manquant)</span>' : '') +
+                '</td><td>' + r.pages + '</td><td>' + r.nb + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      resEl.innerHTML = html;
+
+      if (anyMissing) {
+        showMessage("warn", "Certains rapports n'avaient pas de date ou d'identifiant lisible dans le texte — ils sont nommés avec <strong>SANSDATE</strong> ou <strong>SANSID</strong>. Vérifiez que le PDF contient bien du texte (et non des pages scannées en image).");
+      }
+    }
+
+    // ---------- Orchestration ----------
+    runEl.addEventListener("click", async () => {
+      if (!selectedFile || busy) return;
+      busy = true;
+      runEl.disabled = true;
+      runEl.textContent = "Traitement en cours…";
+      clearMessages();
+      resEl.innerHTML = "";
+
+      try {
+        const originalBytes = new Uint8Array(await selectedFile.arrayBuffer());
+        // pdf.js détache le buffer transmis : on lui donne une COPIE,
+        // et on garde l'original intact pour pdf-lib.
+        const copyForPdfjs = originalBytes.slice(0);
+
+        setProgress(2, "Lecture du document…");
+        const { starts, total } = await detectReports(copyForPdfjs, (i, tot) => {
+          setProgress((i / tot) * 55, "Analyse des pages… " + i + "/" + tot);
+        });
+
+        if (starts.length === 0) {
+          setProgress(0, "");
+          progEl.hidden = true;
+          showMessage("err",
+            "Aucun rapport VGP détecté dans ce PDF (" + total + " page" + (total > 1 ? "s" : "") + "). " +
+            "L'outil cherche des pages contenant à la fois « Rapport de vérification », « N° Identification » et « Date de la vérification ». " +
+            "Si votre document suit une autre structure, l'outil peut être adapté à vos repères.");
+          return;
+        }
+
+        const { blob, rows } = await splitAndZip(originalBytes, starts, (i, tot) => {
+          setProgress(55 + (i / tot) * 40, "Découpe et nommage… " + i + "/" + tot);
+        });
+
+        setProgress(100, "Terminé — " + rows.length + " fichiers prêts.");
+        renderResults(rows, blob, selectedFile.name);
+        try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"pdf-splitter"})}).catch(function(){});}catch(e){}
+
+      } catch (err) {
+        console.error(err);
+        progEl.hidden = true;
+        showMessage("err", "Une erreur est survenue pendant le traitement : " + escapeHtml(err.message || String(err)) +
+          ". Réessayez, ou testez le site via son adresse en ligne (le worker PDF ne s'active pas toujours en ouverture locale directe).");
+      } finally {
+        busy = false;
+        runEl.textContent = "Découper le PDF";
+        runEl.disabled = !selectedFile;
+      }
+    });
+
+  })();
+  </script>
+</body>
+</html>

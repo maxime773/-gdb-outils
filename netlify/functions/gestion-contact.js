@@ -34,7 +34,7 @@ exports.handler = async (event) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-haiku-4-5-20251001',
         max_tokens: 300,
         system: SYSTEM,
         messages: [{ role: 'user', content: `Email envoyé au client :\n${email}` }]

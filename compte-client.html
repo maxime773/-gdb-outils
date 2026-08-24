@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<!-- OUTIL
+     titre: Analyse du compte client
+     description: Traduit l'export comptable GdB NRJ en synthèse métier : solde, rapprochement paiements-factures, alertes et explication prête pour le client.
+     categorie: DATA
+     ia: non
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Analyse du compte client — Gaz de Bordeaux</title>
+<link rel="stylesheet" href="styles.css" />
+<script src="exceljs.min.js"></script>
+<script src="feedback.js"></script>
+<style>
+  .tabs{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap;border-bottom:1px solid var(--line-2);padding-bottom:0}
+  .tab{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;padding:9px 14px;border:1px solid var(--line-2);border-bottom:none;background:var(--paper);border-radius:6px 6px 0 0;cursor:pointer;color:var(--slate);position:relative;top:1px}
+  .tab.on{background:#fff;color:var(--steel);font-weight:700;border-bottom:1px solid #fff}
+  .pane{display:none;margin-top:0}
+  .pane.on{display:block}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px}
+  .kpi{border:1px solid var(--line-2);border-radius:var(--radius);padding:14px 16px;background:#fff;border-left:4px solid var(--steel)}
+  .kpi.debit{border-left-color:#B3261E}
+  .kpi.credit{border-left-color:var(--ok)}
+  .kpi.acc{border-left-color:var(--signal)}
+  .kpi .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate)}
+  .kpi .v{font-size:1.55rem;font-weight:800;margin-top:4px;line-height:1}
+  .kpi .s{font-size:.78rem;color:var(--slate);margin-top:3px}
+  @media(max-width:700px){.kpis{grid-template-columns:1fr 1fr}}
+
+  .synth{margin-top:18px;background:var(--steel);color:var(--paper);border-radius:var(--radius);padding:18px 20px;-webkit-print-color-adjust:exact}
+  .synth .st{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--signal);margin-bottom:8px}
+  .synth p{font-size:.95rem;margin-bottom:6px}
+  .synth p:last-child{margin-bottom:0}
+  .synth b{color:#fff}
+
+  .idbar{margin-top:16px;font-family:var(--mono);font-size:11.5px;color:var(--slate);background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:10px 14px}
+  .idbar span{margin-right:18px}
+
+  table.cc{width:100%;border-collapse:collapse;font-size:.86rem;background:#fff}
+  .tblwrap{margin-top:16px;border:1px solid var(--line-2);border-radius:var(--radius);overflow:hidden}
+  table.cc th{text-align:left;font-family:var(--mono);font-weight:600;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--steel);padding:10px 12px;-webkit-print-color-adjust:exact}
+  table.cc th.r,table.cc td.r{text-align:right}
+  table.cc td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.cc tr:last-child td{border-bottom:none}
+  td.mono{font-family:var(--mono);font-size:11.5px}
+  td.deb{color:#B3261E;font-weight:600}
+  td.cre{color:var(--ok);font-weight:600}
+  .badge{display:inline-block;font-family:var(--mono);font-size:9.5px;font-weight:700;padding:3px 7px;border-radius:999px;white-space:nowrap}
+  .b-ok{color:var(--ok);background:var(--ok-soft)}
+  .b-part{color:#8A6412;background:#FBF3E2}
+  .b-du{color:#B3261E;background:#FBE9E7}
+  .b-info{color:var(--steel);background:#E4ECF4}
+
+  .alert{margin-top:12px;border:1px solid var(--line-2);border-left:4px solid #B8860B;border-radius:var(--radius);padding:13px 16px;background:#fff}
+  .alert.high{border-left-color:#B3261E}
+  .alert .at{font-weight:700;font-size:.93rem;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .alert p{font-size:.86rem;color:var(--slate)}
+  .conf{font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:999px;background:var(--paper-2);color:var(--slate);font-weight:700}
+
+  .client{background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:18px 20px;margin-top:16px}
+  .client h4{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--signal);margin-bottom:10px}
+  .client .txt{font-size:.94rem;line-height:1.65;color:#222;white-space:pre-wrap}
+  .copy{margin-top:12px;font-family:var(--mono);font-size:11.5px;background:transparent;border:1px solid var(--line-2);border-radius:var(--radius);padding:7px 13px;cursor:pointer;color:var(--slate)}
+  .copy:hover{border-color:var(--steel);color:var(--steel)}
+  .copy.done{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+  .exp{margin-top:16px;display:inline-flex;align-items:center;gap:9px;background:var(--ok);color:#fff;font-weight:600;font-size:.92rem;padding:11px 16px;border-radius:var(--radius);border:none;cursor:pointer}
+  .disc{margin-top:14px;font-size:.8rem;color:var(--slate);border-top:1px dashed var(--line-2);padding-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap tool-page">
+  <a class="back" href="index.html">← Catalogue</a>
+
+  <section class="tool-hero">
+    <span class="eyebrow">DATA · 02</span>
+    <h1>Analyse du compte client</h1>
+    <p>Déposez l'export compte client GdB NRJ : l'outil traduit la vision comptable en vision métier — solde reconstitué, rapprochement paiements/factures via le lettrage, alertes, et explication prête à donner au client.</p>
+  </section>
+
+  <div class="panel">
+    <div class="panel-strip"><span class="k">TRAITEMENT</span> local · aucun envoi réseau · calculs déterministes</div>
+    <div class="panel-body">
+
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Déposer l'export compte client">
+        <div class="drop-icon">📊</div>
+        <div class="drop-title">Glissez l'export compte client</div>
+        <div class="drop-hint">.xlsx ou .csv — export GdB NRJ</div>
+        <input type="file" id="file" accept=".xlsx,.csv" hidden />
+      </div>
+
+      <button class="run" id="run" disabled>Analyser le compte</button>
+
+      <div class="progress" id="progress" hidden>
+        <div class="track"><div class="fill" id="fill"></div></div>
+        <div class="pstatus" id="pstatus"></div>
+      </div>
+
+      <div id="messages"></div>
+      <div id="results"></div>
+
+    </div>
+  </div>
+
+  <div class="colophon"><span>Gaz de Bordeaux — DATA · 02</span><span>ExcelJS — embarqué</span></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(id){return document.getElementById(id);};
+  var dropEl=$("drop"), fileEl=$("file"), runEl=$("run"), progEl=$("progress"),
+      fillEl=$("fill"), statusEl=$("pstatus"), msgEl=$("messages"), resEl=$("results");
+  var selectedFile=null, busy=false, A=null;
+
+  // ---- codes opération connus (dictionnaire métier) ----
+  var CODES={
+    "906":{lib:"Facture",       type:"facture"},
+    "956":{lib:"Avoir",         type:"avoir"},
+    "971":{lib:"Prélèvement",   type:"paiement"},
+    "560":{lib:"Paiement CB",   type:"paiement"},
+    "917C":{lib:"Remboursement par chèque", type:"remboursement"},
+    "972":{lib:"Rejet de prélèvement", type:"rejet"},
+    "973":{lib:"Frais de rejet", type:"frais"}
+  };
+  var MODES={"PR":"prélèvement automatique","AC":"paiement en ligne / CB","CH":"chèque","VI":"virement","TP":"TIP"};
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+  function fmtSize(b){ if(b<1024)return b+" o"; if(b<1048576)return (b/1024).toFixed(0)+" Ko"; return (b/1048576).toFixed(1)+" Mo"; }
+  function eur(v){ return (Math.round(v*100)/100).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"; }
+  function clearMessages(){ msgEl.innerHTML=""; }
+  function showMessage(k,h){ var d=document.createElement("div"); d.className="notice "+k; d.innerHTML=h; msgEl.appendChild(d); }
+  function setProgress(p,t){ progEl.hidden=false; fillEl.style.width=Math.max(0,Math.min(100,p))+"%"; statusEl.textContent=t; }
+
+  function setFile(f){
+    if(!f) return;
+    if(!/\.(xlsx|csv)$/i.test(f.name)){ clearMessages(); showMessage("err","Format non pris en charge (.xlsx ou .csv attendu)."); return; }
+    selectedFile=f; resEl.innerHTML=""; progEl.hidden=true; clearMessages();
+    dropEl.classList.add("has");
+    dropEl.innerHTML='<div class="drop-icon">✅</div><div class="filemeta"><span class="name">'+esc(f.name)+'</span> <span class="size">· '+fmtSize(f.size)+'</span></div><button class="link-btn" id="clr" type="button">Choisir un autre fichier</button>';
+    $("clr").addEventListener("click",function(e){ e.stopPropagation(); reset(); });
+    runEl.disabled=false;
+  }
+  function reset(){
+    selectedFile=null; fileEl.value=""; runEl.disabled=true; progEl.hidden=true; resEl.innerHTML=""; clearMessages();
+    dropEl.classList.remove("has");
+    dropEl.innerHTML='<div class="drop-icon">📊</div><div class="drop-title">Glissez l\'export compte client</div><div class="drop-hint">.xlsx ou .csv — export GdB NRJ</div>';
+  }
+  dropEl.addEventListener("click",function(){ if(!busy) fileEl.click(); });
+  dropEl.addEventListener("keydown",function(e){ if((e.key==="Enter"||e.key===" ")&&!busy){ e.preventDefault(); fileEl.click(); } });
+  fileEl.addEventListener("change",function(e){ setFile(e.target.files[0]); });
+  ["dragenter","dragover"].forEach(function(ev){ dropEl.addEventListener(ev,function(e){ e.preventDefault(); if(!busy) dropEl.classList.add("over"); }); });
+  ["dragleave","drop"].forEach(function(ev){ dropEl.addEventListener(ev,function(e){ e.preventDefault(); dropEl.classList.remove("over"); }); });
+  dropEl.addEventListener("drop",function(e){ if(busy) return; var f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) setFile(f); });
+
+  // ---------- lecture ----------
+  function norm(s){ return String(s==null?"":s).normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").toLowerCase().trim(); }
+  function findCol(h,keys){ for(var i=0;i<h.length;i++){ var x=norm(h[i]); for(var k=0;k<keys.length;k++){ if(x.indexOf(keys[k])>=0) return i+1; } } return 0; }
+  function num(v){ if(v==null||v==="")return 0; if(typeof v==="number")return v; var n=parseFloat(String(v).replace(/\s/g,"").replace(",",".")); return isNaN(n)?0:n; }
+  function txt(v){ if(v==null)return ""; if(typeof v==="object"&&v.text)return String(v.text); if(v instanceof Date) return dstr(v); return String(v).trim(); }
+  function dstr(d){ return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear(); }
+  function toDate(v){
+    if(v instanceof Date) return v;
+    var s=txt(v); var m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+    if(m) return new Date(+m[3],+m[2]-1,+m[1]);
+    return null;
+  }
+  function detectDelim(l){ var c=(l.match(/,/g)||[]).length,s=(l.match(/;/g)||[]).length; return s>c?";":","; }
+  function parseCSV(text){
+    text=text.replace(/^\uFEFF/,""); var nl=text.indexOf("\n"); var d=detectDelim(text.slice(0,nl>=0?nl:text.length));
+    var rs=[],row=[],f="",q=false;
+    for(var i=0;i<text.length;i++){ var ch=text[i];
+      if(q){ if(ch==='"'){ if(text[i+1]==='"'){f+='"';i++;} else q=false; } else f+=ch; }
+      else { if(ch==='"')q=true; else if(ch===d){row.push(f);f="";} else if(ch==="\n"){row.push(f);rs.push(row);row=[];f="";} else if(ch!=="\r")f+=ch; }
+    }
+    if(f!==""||row.length){row.push(f);rs.push(row);}
+    return rs;
+  }
+  async function loadSheet(file){
+    var wb=new ExcelJS.Workbook();
+    if(/\.csv$/i.test(file.name)){
+      var rs=parseCSV(await file.text()).filter(function(r){return r.length;});
+      var ws=wb.addWorksheet("F1"); rs.forEach(function(r){ ws.addRow(r); }); return ws;
+    }
+    await wb.xlsx.load(await file.arrayBuffer());
+    var s=wb.worksheets[0]; if(!s) throw new Error("aucune feuille trouvée"); return s;
+  }
+
+  // ---------- analyse déterministe ----------
+  function analyse(ws){
+    var h=[]; ws.getRow(1).eachCell({includeEmpty:true},function(c){ h.push(txt(c.value)); });
+    var C={
+      energie:findCol(h,["energie"]), client:findCol(h,["client affilie"]), contrat:findCol(h,["n contrat","contrat"]),
+      pts:findCol(h,["pts"]), pce:findCol(h,["pce"]), pdl:findCol(h,["pdl"]),
+      date:findCol(h,["date facture","date piece"]), piece:findCol(h,["numero facture","numero piece","n facture"]),
+      libpiece:findCol(h,["libelle de facture","libelle facture","libelle piece"]),
+      etat:findCol(h,["etat facture"]), cont:findCol(h,["contentieux"]),
+      code:findCol(h,["code operation"]), lib:findCol(h,["libelle code operation","libelle operation"]),
+      debit:findCol(h,["debit"]), credit:findCol(h,["credit"]),
+      mode:findCol(h,["mode reglement","mode de reglement"]),
+      ech:findCol(h,["date echeance"]), rejet:findCol(h,["motif rejet"]),
+      relance:findCol(h,["famille de relance"]),
+      dlettr:findCol(h,["date de lettrage"]), chrono:findCol(h,["chrono lettrage"])
+    };
+    if(!C.debit||!C.credit) throw new Error("colonnes Débit/Crédit introuvables — est-ce bien un export compte client GdB NRJ ?");
+
+    var mv=[];
+    for(var r=2;r<=ws.actualRowCount;r++){
+      var row=ws.getRow(r);
+      var deb=num(row.getCell(C.debit).value), cre=num(row.getCell(C.credit).value);
+      var code=txt(row.getCell(C.code).value);
+      if(!code && deb===0 && cre===0) continue;
+      var d=toDate(row.getCell(C.date).value);
+      mv.push({
+        date:d, dateStr:d?dstr(d):txt(row.getCell(C.date).value),
+        piece:txt(row.getCell(C.piece).value),
+        libpiece:txt(row.getCell(C.libpiece).value),
+        etat:C.etat?txt(row.getCell(C.etat).value):"",
+        contentieux:C.cont?txt(row.getCell(C.cont).value):"",
+        code:code, lib:txt(row.getCell(C.lib).value),
+        debit:deb, credit:cre,
+        mode:C.mode?txt(row.getCell(C.mode).value):"",
+        rejet:C.rejet?txt(row.getCell(C.rejet).value):"",
+        relance:C.relance?txt(row.getCell(C.relance).value):"",
+        chrono:C.chrono?txt(row.getCell(C.chrono).value):"",
+        dlettr:C.dlettr?txt(row.getCell(C.dlettr).value):""
+      });
+    }
+    if(!mv.length) throw new Error("aucun mouvement exploitable dans le fichier");
+
+    // identifiants (première ligne renseignée)
+    var id={};
+    ["energie","client","contrat","pts","pce","pdl"].forEach(function(k){
+      if(!C[k]) return;
+      for(var r=2;r<=ws.actualRowCount;r++){ var v=txt(ws.getRow(r).getCell(C[k]).value); if(v){ id[k]=v; break; } }
+    });
+
+    // --- neutralisation des paires d'annulation (même pièce, même montant, sens opposés, même code) ---
+    var annul=new Set();
+    for(var i=0;i<mv.length;i++){
+      if(annul.has(i)) continue;
+      for(var j=i+1;j<mv.length;j++){
+        if(annul.has(j)) continue;
+        var a=mv[i], b=mv[j];
+        if(a.code===b.code && a.piece===b.piece &&
+           Math.abs(a.debit-b.credit)<0.005 && Math.abs(a.credit-b.debit)<0.005 &&
+           (a.debit+a.credit)>0){
+          annul.add(i); annul.add(j); break;
+        }
+      }
+    }
+    mv.forEach(function(m,i){ m.annule=annul.has(i); });
+    var actifs=mv.filter(function(m){ return !m.annule; });
+
+    // --- totaux (déterministes) ---
+    var totDeb=actifs.reduce(function(s,m){return s+m.debit;},0);
+    var totCre=actifs.reduce(function(s,m){return s+m.credit;},0);
+    var solde=Math.round((totDeb-totCre)*100)/100;
+
+    // --- rapprochement par lettrage ---
+    var groupes={};
+    actifs.forEach(function(m){
+      var k=m.chrono||("__nl_"+m.piece||"__nl");
+      (groupes[k]=groupes[k]||[]).push(m);
+    });
+    var factures=[];
+    actifs.filter(function(m){ return m.debit>0 && (m.code==="906"||norm(m.lib).indexOf("facture")>=0); })
+      .forEach(function(f){
+        var g=(f.chrono? groupes[f.chrono] : []) || [];
+        var regle=g.filter(function(m){ return m!==f && m.credit>0; });
+        var paye=regle.reduce(function(s,m){return s+m.credit;},0);
+        var reste=Math.round((f.debit-paye)*100)/100;
+        factures.push({f:f, regle:regle, paye:paye, reste:reste,
+          statut: reste<=0.005?"soldee":(paye>0.005?"partielle":"due")});
+      });
+    factures.sort(function(a,b){ return (b.f.date||0)-(a.f.date||0); });
+
+    // paiements non rapprochés
+    var nonLettres=actifs.filter(function(m){ return m.credit>0 && !m.chrono; });
+
+    // --- alertes ---
+    var alertes=[];
+    if(nonLettres.length){
+      alertes.push({niv:"moy",conf:"à vérifier",t:nonLettres.length+" paiement(s) non rapproché(s)",
+        p:"Ces règlements ne sont rattachés à aucune facture par le lettrage : "+
+          nonLettres.map(function(m){return eur(m.credit)+" du "+m.dateStr;}).join(", ")+
+          ". À vérifier avant d'expliquer le solde au client."});
+    }
+    // double facturation : même montant, même mois
+    var vus={};
+    actifs.filter(function(m){return m.debit>0 && m.code==="906";}).forEach(function(f){
+      var k=(f.date? f.date.getFullYear()+"-"+f.date.getMonth() : "?")+"|"+f.debit.toFixed(2);
+      if(vus[k]) alertes.push({niv:"haut",conf:"probable",t:"Double facturation suspectée",
+        p:"Deux factures du même montant ("+eur(f.debit)+") sur le même mois : pièces "+vus[k]+" et "+f.piece+". À contrôler avant tout échange avec le client."});
+      else vus[k]=f.piece;
+    });
+    // rejets et contentieux
+    var rejets=actifs.filter(function(m){ return m.rejet || norm(m.lib).indexOf("rejet")>=0; });
+    if(rejets.length) alertes.push({niv:"haut",conf:"avéré",t:rejets.length+" rejet(s) de règlement",
+      p:"Motif(s) : "+rejets.map(function(m){return (m.rejet||m.lib)+" ("+m.dateStr+")";}).join(", ")+"."});
+    var cont=actifs.filter(function(m){ return norm(m.contentieux)==="o"||norm(m.contentieux)==="oui"||m.relance; });
+    if(cont.length) alertes.push({niv:"haut",conf:"avéré",t:"Dossier en recouvrement",
+      p:cont.length+" pièce(s) marquée(s) contentieux ou en famille de relance. Adopter une formulation neutre, sans posture accusatoire."});
+    // montant atypique
+    var mts=factures.map(function(x){return x.f.debit;});
+    if(mts.length>=4){
+      var moy=mts.reduce(function(s,v){return s+v;},0)/mts.length;
+      factures.forEach(function(x){
+        if(moy>0 && x.f.debit>moy*2.5) alertes.push({niv:"moy",conf:"à confirmer",
+          t:"Facture atypique — "+eur(x.f.debit),
+          p:"La facture "+x.f.piece+" du "+x.f.dateStr+" est nettement supérieure à la moyenne du compte ("+eur(moy)+"). Vérifier s'il s'agit d'une régularisation annuelle."});
+      });
+    }
+    // contrôle de cohérence
+    var recalc=Math.round((totDeb-totCre)*100)/100;
+    var coherent=Math.abs(recalc-solde)<0.005;
+
+    return {id:id, mv:mv, actifs:actifs, annules:mv.filter(function(m){return m.annule;}).length,
+            totDeb:totDeb, totCre:totCre, solde:solde, factures:factures,
+            nonLettres:nonLettres, alertes:alertes, coherent:coherent,
+            derniere: actifs.slice().sort(function(a,b){return (b.date||0)-(a.date||0);})[0]};
+  }
+
+  // ---------- textes ----------
+  function typeOp(m){
+    var c=CODES[m.code];
+    if(c) return c.lib;
+    var l=norm(m.lib);
+    if(l.indexOf("facture")>=0) return "Facture";
+    if(l.indexOf("avoir")>=0) return "Avoir";
+    if(l.indexOf("prelevement")>=0) return "Prélèvement";
+    if(l.indexOf("paiement")>=0) return "Paiement";
+    if(l.indexOf("rembours")>=0) return "Remboursement";
+    return m.lib||("Opération "+m.code);
+  }
+  function modeLib(m){ return MODES[m.mode]||m.mode||""; }
+
+  function synthese(A){
+    var s=A.solde;
+    var etat = Math.abs(s)<0.005 ? "à jour" : (s>0 ? "débiteur" : "créditeur");
+    var modes={}; A.actifs.filter(function(m){return m.credit>0&&m.mode;}).forEach(function(m){ modes[m.mode]=(modes[m.mode]||0)+1; });
+    var modePrinc=Object.keys(modes).sort(function(a,b){return modes[b]-modes[a];})[0];
+    var t='<div class="synth"><div class="st">Synthèse express — conseiller</div>';
+    t+='<p>Compte <b>'+etat+'</b>'+(Math.abs(s)<0.005?"":" de <b>"+eur(Math.abs(s))+"</b>")+
+       ' · '+A.factures.length+' facture(s) sur la période · dernier mouvement le <b>'+(A.derniere?A.derniere.dateStr:"—")+'</b>.</p>';
+    t+='<p>Règlement principal : <b>'+(modePrinc?modeLib({mode:modePrinc}):"non déterminé")+'</b>'+
+       ' · '+A.factures.filter(function(f){return f.statut==="soldee";}).length+' facture(s) soldée(s)'+
+       (A.factures.filter(function(f){return f.statut!=="soldee";}).length? ", "+A.factures.filter(function(f){return f.statut!=="soldee";}).length+" avec un reste dû":"")+'.</p>';
+    if(A.alertes.length) t+='<p>⚠ <b>'+A.alertes.length+' point(s) d\'attention</b> — voir l\'onglet Alertes avant l\'appel.</p>';
+    else t+='<p>✓ Aucune anomalie détectée sur ce compte.</p>';
+    t+='</div>';
+    return t;
+  }
+
+  function texteClient(A){
+    var s=A.solde, lignes=[];
+    if(Math.abs(s)<0.005){
+      lignes.push("Votre compte est à jour : l'ensemble de vos factures a bien été réglé, il n'y a aucune somme restant due.");
+    } else if(s>0){
+      lignes.push("À ce jour, il reste "+eur(s)+" à régler sur votre compte.");
+      var dues=A.factures.filter(function(f){return f.statut!=="soldee";});
+      if(dues.length){
+        lignes.push("Cette somme correspond à "+(dues.length>1?"ces factures :":"la facture suivante :"));
+        dues.slice(0,4).forEach(function(f){
+          lignes.push("• facture du "+f.f.dateStr+" de "+eur(f.f.debit)+
+            (f.paye>0.005? ", réglée à hauteur de "+eur(f.paye)+", reste "+eur(f.reste) : ", non réglée à ce jour"));
+        });
+      }
+    } else {
+      lignes.push("Votre compte présente un solde en votre faveur de "+eur(Math.abs(s))+
+        ", qui sera déduit de votre prochaine facture ou remboursé selon votre situation.");
+    }
+    var nb=A.factures.length;
+    if(nb) lignes.push("Sur la période consultée, "+nb+" facture"+(nb>1?"s ont été émises":" a été émise")+
+      " pour un total de "+eur(A.totDeb)+", et "+eur(A.totCre)+" "+(A.totCre>0?"ont été enregistrés en règlements et avoirs.":"."));
+    return lignes.join("\n");
+  }
+  function texteEmail(A){
+    var s=A.solde;
+    var t="Bonjour,\n\nSuite à votre demande, voici le point sur votre compte.\n\n";
+    t+=texteClient(A).replace(/\n/g,"\n");
+    t+="\n\nJe reste à votre disposition pour tout complément.\n\nCordialement,\nVotre conseiller Gaz de Bordeaux";
+    return t;
+  }
+
+  // ---------- rendu ----------
+  function render(){
+    var s=A.solde;
+    var html='';
+    // identifiants
+    var idp=[];
+    if(A.id.energie) idp.push('<span>Énergie : <b>'+esc(A.id.energie)+'</b></span>');
+    if(A.id.contrat) idp.push('<span>Contrat : <b>'+esc(A.id.contrat)+'</b></span>');
+    if(A.id.pce) idp.push('<span>PCE : <b>'+esc(A.id.pce)+'</b></span>');
+    if(A.id.pdl) idp.push('<span>PDL : <b>'+esc(A.id.pdl)+'</b></span>');
+    if(A.id.client) idp.push('<span>Client : <b>'+esc(A.id.client)+'</b></span>');
+    if(idp.length) html+='<div class="idbar">'+idp.join("")+'</div>';
+
+    html+='<div class="kpis">'+
+      '<div class="kpi '+(Math.abs(s)<0.005?"":(s>0?"debit":"credit"))+'"><div class="l">Solde du compte</div><div class="v">'+eur(Math.abs(s))+'</div><div class="s">'+(Math.abs(s)<0.005?"compte à jour":(s>0?"restant dû":"en faveur du client"))+'</div></div>'+
+      '<div class="kpi debit"><div class="l">Total facturé</div><div class="v">'+eur(A.totDeb)+'</div><div class="s">'+A.factures.length+' facture(s)</div></div>'+
+      '<div class="kpi credit"><div class="l">Total réglé</div><div class="v">'+eur(A.totCre)+'</div><div class="s">règlements et avoirs</div></div>'+
+      '<div class="kpi acc"><div class="l">Points d\'attention</div><div class="v">'+A.alertes.length+'</div><div class="s">'+(A.annules?A.annules+" écriture(s) neutralisée(s)":"aucune annulation")+'</div></div>'+
+    '</div>';
+
+    html+=synthese(A);
+
+    html+='<div class="tabs">'+
+      '<button class="tab on" id="t-rappr">Rapprochement</button>'+
+      '<button class="tab" id="t-chrono">Chronologie</button>'+
+      '<button class="tab" id="t-alertes">Alertes ('+A.alertes.length+')</button>'+
+      '<button class="tab" id="t-client">Explication client</button>'+
+    '</div>';
+
+    // --- rapprochement ---
+    html+='<div class="pane on" id="p-rappr"><div class="tblwrap"><table class="cc"><thead><tr>'+
+      '<th>Facture</th><th>Date</th><th class="r">Montant</th><th>Réglée par</th><th class="r">Reste dû</th><th>Statut</th>'+
+      '</tr></thead><tbody>';
+    if(!A.factures.length) html+='<tr><td colspan="6" style="color:var(--slate)">Aucune facture identifiée.</td></tr>';
+    A.factures.forEach(function(f){
+      var det=f.regle.length? f.regle.map(function(m){ return typeOp(m)+" "+eur(m.credit)+" le "+m.dateStr+(modeLib(m)?" ("+modeLib(m)+")":""); }).join("<br>") :
+        '<span style="color:var(--slate)">aucun règlement rattaché</span>';
+      var b={soldee:'<span class="badge b-ok">Soldée</span>',partielle:'<span class="badge b-part">Partielle</span>',due:'<span class="badge b-du">Due</span>'}[f.statut];
+      html+='<tr><td class="mono">'+esc(f.f.piece)+'</td><td class="mono">'+esc(f.f.dateStr)+'</td>'+
+            '<td class="r deb">'+eur(f.f.debit)+'</td><td style="font-size:.82rem">'+det+'</td>'+
+            '<td class="r">'+(f.reste>0.005?'<span class="deb">'+eur(f.reste)+'</span>':'—')+'</td><td>'+b+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+    if(A.nonLettres.length){
+      html+='<div class="alert"><div class="at">⚠ Règlements non rattachés</div><p>'+
+        A.nonLettres.map(function(m){return eur(m.credit)+" le "+m.dateStr+" ("+typeOp(m)+")";}).join(" · ")+
+        ' — ces montants ne sont rattachés à aucune facture par le lettrage.</p></div>';
+    }
+    html+='</div>';
+
+    // --- chronologie ---
+    html+='<div class="pane" id="p-chrono"><div class="tblwrap"><table class="cc"><thead><tr>'+
+      '<th>Date</th><th>Opération</th><th>Pièce</th><th class="r">Facturé</th><th class="r">Réglé</th><th>Détail</th>'+
+      '</tr></thead><tbody>';
+    A.mv.slice().sort(function(a,b){return (b.date||0)-(a.date||0);}).forEach(function(m){
+      var det=[]; if(modeLib(m)) det.push(modeLib(m)); if(m.rejet) det.push("rejet : "+m.rejet);
+      if(m.annule) det.push("écriture annulée (neutralisée)");
+      html+='<tr'+(m.annule?' style="opacity:.5"':'')+'><td class="mono">'+esc(m.dateStr)+'</td>'+
+            '<td>'+esc(typeOp(m))+'</td><td class="mono">'+esc(m.piece)+'</td>'+
+            '<td class="r">'+(m.debit?'<span class="deb">'+eur(m.debit)+'</span>':'—')+'</td>'+
+            '<td class="r">'+(m.credit?'<span class="cre">'+eur(m.credit)+'</span>':'—')+'</td>'+
+            '<td style="font-size:.8rem;color:var(--slate)">'+esc(det.join(" · "))+'</td></tr>';
+    });
+    html+='</tbody></table></div><p class="disc">Les débits correspondent à ce qui a été facturé au client, les crédits à ce qui a été réglé ou avoir. Les écritures d\'annulation sont grisées et exclues des totaux.</p></div>';
+
+    // --- alertes ---
+    html+='<div class="pane" id="p-alertes">';
+    if(!A.alertes.length) html+='<div class="alert" style="border-left-color:var(--ok)"><div class="at">✓ Aucune anomalie détectée</div><p>Les totaux sont cohérents et l\'ensemble des règlements est rattaché à une facture.</p></div>';
+    A.alertes.forEach(function(a){
+      html+='<div class="alert'+(a.niv==="haut"?" high":"")+'"><div class="at">'+(a.niv==="haut"?"🔴":"🟠")+' '+esc(a.t)+' <span class="conf">'+esc(a.conf)+'</span></div><p>'+a.p+'</p></div>';
+    });
+    html+='<p class="disc">Chaque alerte est une hypothèse à vérifier, jamais un diagnostic. Contrôlez la donnée source avant d\'en parler au client.</p></div>';
+
+    // --- client ---
+    html+='<div class="pane" id="p-client">'+
+      '<div class="client"><h4>Éléments de langage — au téléphone</h4><div class="txt" id="txt-tel">'+esc(texteClient(A))+'</div>'+
+      '<button class="copy" data-t="txt-tel">Copier</button></div>'+
+      '<div class="client"><h4>Paragraphe — pour un email</h4><div class="txt" id="txt-mail">'+esc(texteEmail(A))+'</div>'+
+      '<button class="copy" data-t="txt-mail">Copier</button></div>'+
+      '<p class="disc">Texte généré à partir des montants calculés. À relire et ajuster avant envoi — le conseiller reste responsable de l\'explication donnée.</p></div>';
+
+    html+='<button class="exp" id="exp">⬇ Exporter l\'analyse (.xlsx)</button>';
+    resEl.innerHTML=html;
+
+    // onglets
+    [["rappr"],["chrono"],["alertes"],["client"]].forEach(function(k){
+      $("t-"+k[0]).addEventListener("click",function(){
+        ["rappr","chrono","alertes","client"].forEach(function(x){
+          $("t-"+x).classList.toggle("on",x===k[0]);
+          $("p-"+x).classList.toggle("on",x===k[0]);
+        });
+      });
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".copy"),function(b){
+      b.addEventListener("click",function(){
+        var t=$(b.getAttribute("data-t")).textContent;
+        navigator.clipboard.writeText(t).catch(function(){});
+        b.textContent="Copié !"; b.classList.add("done");
+        setTimeout(function(){ b.textContent="Copier"; b.classList.remove("done"); },1600);
+      });
+    });
+    $("exp").addEventListener("click", exportXlsx);
+  }
+
+  runEl.addEventListener("click", async function(){
+    if(!selectedFile||busy) return;
+    busy=true; runEl.disabled=true; runEl.textContent="Analyse…"; clearMessages(); resEl.innerHTML="";
+    try{
+      setProgress(25,"Lecture de l'export…");
+      var ws=await loadSheet(selectedFile);
+      setProgress(60,"Reconstitution du compte…");
+      A=analyse(ws);
+      setProgress(100,"Terminé — "+A.actifs.length+" mouvement(s) analysé(s).");
+      render();
+      if(!A.coherent) showMessage("warn","Le solde recalculé ne correspond pas au total attendu — à vérifier manuellement.");
+      try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"compte-client"})}).catch(function(){});}catch(e){}
+    }catch(err){
+      progEl.hidden=true;
+      showMessage("err","Analyse impossible : "+esc(err.message||String(err))+".");
+    }finally{
+      busy=false; runEl.textContent="Analyser le compte"; runEl.disabled=!selectedFile;
+    }
+  });
+
+  async function exportXlsx(){
+    var wb=new ExcelJS.Workbook();
+    var ws=wb.addWorksheet("Rapprochement");
+    ws.addRow(["Facture","Date","Montant facturé","Montant réglé","Reste dû","Statut","Règlements rattachés"]);
+    ws.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; });
+    var lib={soldee:"Soldée",partielle:"Partielle",due:"Due"};
+    A.factures.forEach(function(f){
+      ws.addRow([f.f.piece,f.f.dateStr,f.f.debit,Math.round(f.paye*100)/100,f.reste>0.005?f.reste:0,lib[f.statut],
+        f.regle.map(function(m){return typeOp(m)+" "+(Math.round(m.credit*100)/100)+"€ "+m.dateStr;}).join(" | ")]);
+    });
+    ws.addRow([]); ws.addRow(["Total facturé",Math.round(A.totDeb*100)/100]);
+    ws.addRow(["Total réglé",Math.round(A.totCre*100)/100]);
+    ws.addRow(["Solde",A.solde]);
+    for(var i=1;i<=7;i++){ var col=ws.getColumn(i),m=12; col.eachCell(function(c){var l=String(c.value==null?"":c.value).length; if(l>m)m=l;}); col.width=Math.min(m+2,50); }
+    ws.views=[{state:"frozen",ySplit:1}];
+
+    var ws2=wb.addWorksheet("Chronologie");
+    ws2.addRow(["Date","Opération","Pièce","Facturé","Réglé","Mode","Annulée"]);
+    ws2.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; });
+    A.mv.forEach(function(m){ ws2.addRow([m.dateStr,typeOp(m),m.piece,m.debit||"",m.credit||"",modeLib(m),m.annule?"Oui":""]); });
+    for(var j=1;j<=7;j++){ var c2=ws2.getColumn(j),n=12; c2.eachCell(function(c){var l=String(c.value==null?"":c.value).length; if(l>n)n=l;}); c2.width=Math.min(n+2,40); }
+
+    var buf=await wb.xlsx.writeBuffer();
+    var blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="analyse-compte-client.xlsx"; a.click();
+  }
+})();
+</script>
+</body>
+</html>

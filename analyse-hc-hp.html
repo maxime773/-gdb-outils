@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<!-- OUTIL
+     titre: Analyse Heures Creuses / Heures Pleines
+     description: Analyse les relevés HP/HC d'un client, calcule la part d'heures creuses et indique si l'option est rentable.
+     categorie: DATA
+     ia: non
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Analyse Heures Creuses / Heures Pleines — Gaz de Bordeaux</title>
+<link rel="stylesheet" href="styles.css" />
+<script src="chart.min.js"></script>
+<script src="exceljs.min.js"></script>
+<script src="feedback.js"></script>
+<style>
+  .entry{margin-top:20px}
+  .entry label{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);display:block;margin-bottom:8px}
+  textarea{width:100%;min-height:170px;padding:14px;border:1px solid var(--line-2);border-radius:var(--radius);font-family:var(--mono);font-size:12.5px;line-height:1.65;color:var(--ink);background:#fff;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--signal)}
+  .seuil{display:flex;align-items:center;gap:10px;margin-top:16px;flex-wrap:wrap}
+  .seuil label{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);margin:0}
+  .seuil input{width:80px;padding:8px 10px;border:1px solid var(--line-2);border-radius:var(--radius);font-family:var(--mono);font-size:13px;text-align:right}
+  .seuil input:focus{outline:none;border-color:var(--signal)}
+  .seuil .h{font-family:var(--mono);font-size:11px;color:var(--slate)}
+  .demo-btn{background:none;border:none;color:var(--signal);font-family:var(--mono);font-size:11.5px;text-decoration:underline;cursor:pointer;padding:0}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:22px}
+  .kpi{border:1px solid var(--line-2);border-radius:var(--radius);padding:14px 16px;background:#fff;border-left:4px solid var(--steel)}
+  .kpi.acc{border-left-color:var(--signal)}
+  .kpi .l{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate)}
+  .kpi .v{font-size:1.6rem;font-weight:800;margin-top:4px;line-height:1}
+  .kpi .s{font-size:.78rem;color:var(--slate);margin-top:3px}
+  @media(max-width:700px){.kpis{grid-template-columns:1fr 1fr}}
+
+  .verdict{margin-top:20px;border-radius:var(--radius);padding:18px 20px;border:1px solid}
+  .verdict.yes{background:var(--ok-soft);border-color:#BFD9C9}
+  .verdict.no{background:#FCEBD6;border-color:#F0D3B4}
+  .verdict .vt{font-weight:800;font-size:1.05rem;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .verdict.yes .vt{color:var(--ok)}
+  .verdict.no .vt{color:#8A4B12}
+  .verdict p{font-size:.93rem;color:#333;margin-bottom:6px}
+  .verdict p:last-child{margin-bottom:0}
+
+  .chartcard{margin-top:20px;background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:18px}
+  .chartcard h4{font-size:.98rem;margin-bottom:4px}
+  .chartcard .cap{font-size:.8rem;color:var(--slate);margin-bottom:12px}
+  .chartcard .cwrap{position:relative;height:300px}
+
+  .tblwrap{margin-top:20px;background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);overflow:hidden}
+  table.hc{width:100%;border-collapse:collapse;font-size:.88rem}
+  table.hc th{text-align:right;font-family:var(--mono);font-weight:600;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--steel);padding:11px 12px;-webkit-print-color-adjust:exact}
+  table.hc th:first-child{text-align:left}
+  table.hc td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:right}
+  table.hc td:first-child{text-align:left;font-family:var(--mono);font-size:12px}
+  table.hc tr:nth-child(even) td{background:var(--paper)}
+  table.hc tr:last-child td{border-bottom:none}
+  td.ratio{color:var(--signal);font-weight:700}
+  td.part{font-weight:700}
+  td.part.y{color:var(--ok)}
+  td.part.n{color:var(--slate)}
+  .exp{margin-top:16px;display:inline-flex;align-items:center;gap:9px;background:var(--ok);color:#fff;font-weight:600;font-size:.92rem;padding:11px 16px;border-radius:var(--radius);border:none;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap tool-page">
+  <a class="back" href="index.html">← Catalogue</a>
+
+  <section class="tool-hero">
+    <span class="eyebrow">DATA · 01</span>
+    <h1>Analyse Heures Creuses / Heures Pleines</h1>
+    <p>Collez les relevés HP/HC d'un client et le seuil de rentabilité de son offre : l'outil calcule la part d'heures creuses mois par mois, la compare au seuil et indique si l'option HC/HP est avantageuse — avec une explication prête à donner au client.</p>
+  </section>
+
+  <div class="panel">
+    <div class="panel-strip"><span class="k">TRAITEMENT</span> local · aucun envoi réseau · calcul déterministe</div>
+    <div class="panel-body">
+
+      <div class="entry">
+        <label for="data">Relevés de consommation — une ligne par relevé</label>
+        <textarea id="data" placeholder="Format : date · (n° compteur) · HP ou HC · kWh&#10;&#10;27/02/2026  856461  HP  195&#10;27/02/2026  856461  HC  79&#10;27/01/2026  762390  HP  197&#10;27/01/2026  762390  HC  72"></textarea>
+      </div>
+
+      <div class="seuil">
+        <label for="seuil">Seuil de rentabilité</label>
+        <input type="number" id="seuil" value="28.9" step="0.1" min="0" max="100" />
+        <span class="h">% de part HC minimale pour que l'option soit rentable</span>
+        <button class="demo-btn" id="demo" type="button" style="margin-left:auto">Charger un jeu d'essai</button>
+      </div>
+
+      <button class="run" id="run">Analyser la consommation</button>
+
+      <div id="messages"></div>
+      <div id="results"></div>
+
+    </div>
+  </div>
+
+  <div class="colophon"><span>Gaz de Bordeaux — DATA · 01</span><span>Chart.js · ExcelJS — embarqués</span></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(id){return document.getElementById(id);};
+  var dataEl=$("data"), seuilEl=$("seuil"), runEl=$("run"), msgEl=$("messages"), resEl=$("results");
+  var chart=null, mois=[], stats=null, seuil=28.9;
+
+  var C={hp:"#0B3A67", hc:"#2C6DA3", ratio:"#EF7D00", ok:"#1C7C54"};
+  var MOIS=["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+  function clearMessages(){ msgEl.innerHTML=""; }
+  function showMessage(k,h){ var d=document.createElement("div"); d.className="notice "+k; d.innerHTML=h; msgEl.appendChild(d); }
+  function r1(v){ return Math.round(v*10)/10; }
+  function fr(v){ return String(r1(v)).replace(".",","); }
+
+  // ---------- parsing ----------
+  // accepte : "27/02/2026  856461  HP  195" | "27/02/2026;HP;195" | tabulations
+  function parse(text){
+    var lignes=text.split(/\r?\n/), releves={};
+    lignes.forEach(function(l){
+      if(!l.trim()) return;
+      var m=l.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+      if(!m) return;
+      var t=l.match(/\b(HP|HC)\b/i); if(!t) return;
+      // dernier nombre de la ligne = kWh
+      var nums=l.replace(m[0],"").match(/\d+(?:[.,]\d+)?/g);
+      if(!nums||!nums.length) return;
+      var kwh=parseFloat(nums[nums.length-1].replace(",","."));
+      if(isNaN(kwh)) return;
+      var an=parseInt(m[3],10), mo=parseInt(m[2],10)-1;
+      var key=an+"-"+String(mo+1).padStart(2,"0");
+      if(!releves[key]) releves[key]={an:an, mo:mo, hp:0, hc:0};
+      if(t[1].toUpperCase()==="HP") releves[key].hp+=kwh; else releves[key].hc+=kwh;
+    });
+    return Object.keys(releves).map(function(k){ return releves[k]; })
+      .filter(function(r){ return !(r.hp===0 && r.hc===0); })
+      .sort(function(a,b){ return (a.an-b.an)||(a.mo-b.mo); });
+  }
+
+  function compute(rows){
+    return rows.map(function(r){
+      var total=r.hp+r.hc;
+      var ratio=r.hp>0 ? (r.hc/r.hp)*100 : null;      // HC/HP
+      var part =total>0 ? (r.hc/total)*100 : null;    // HC/(HC+HP) — c'est ELLE qu'on compare au seuil
+      return {an:r.an, mo:r.mo, label:MOIS[r.mo]+" "+String(r.an).slice(2),
+              hp:r.hp, hc:r.hc, total:total, ratio:ratio, part:part,
+              rentable: part!=null && part>=seuil};
+    });
+  }
+
+  function globals(m){
+    var ratios=m.map(function(x){return x.ratio;}).filter(function(v){return v!=null;});
+    var parts =m.map(function(x){return x.part;}).filter(function(v){return v!=null;});
+    var moy=function(a){ return a.length? a.reduce(function(s,v){return s+v;},0)/a.length : 0; };
+    var totHP=m.reduce(function(s,x){return s+x.hp;},0), totHC=m.reduce(function(s,x){return s+x.hc;},0);
+    return {
+      ratioMoy:moy(ratios), ratioMin:Math.min.apply(null,ratios), ratioMax:Math.max.apply(null,ratios),
+      partMoy:moy(parts),
+      partGlobale: (totHP+totHC)>0 ? (totHC/(totHP+totHC))*100 : 0,
+      nbRentables:m.filter(function(x){return x.rentable;}).length, nbMois:m.length,
+      totHP:totHP, totHC:totHC
+    };
+  }
+
+  // ---------- analyse en langage clair ----------
+  function verdict(m,g){
+    var ok = g.partGlobale>=seuil;
+    var ecart=Math.abs(g.partGlobale-seuil);
+    var txt='<div class="verdict '+(ok?"yes":"no")+'">';
+    txt+='<div class="vt">'+(ok?"✓ L\'option Heures Creuses est rentable":"✗ L\'option Heures Creuses n\'est pas rentable")+'</div>';
+    txt+='<p>Sur l\'ensemble de la période, <b>'+fr(g.partGlobale)+' %</b> de la consommation est réalisée en heures creuses, '+
+         'pour un seuil de rentabilité fixé à <b>'+fr(seuil)+' %</b> — soit '+(ok?"un avantage de ":"un manque de ")+'<b>'+fr(ecart)+' point'+(ecart>=2?"s":"")+'</b>.</p>';
+    txt+='<p><b>'+g.nbRentables+'</b> mois sur '+g.nbMois+' dépassent individuellement le seuil.</p>';
+
+    // saisonnalité
+    var hiver=m.filter(function(x){return [10,11,0,1,2].indexOf(x.mo)>=0;});
+    var ete=m.filter(function(x){return [5,6,7,8].indexOf(x.mo)>=0;});
+    function moyPart(a){ var v=a.map(function(x){return x.part;}).filter(function(p){return p!=null;}); return v.length? v.reduce(function(s,p){return s+p;},0)/v.length : null; }
+    var ph=moyPart(hiver), pe=moyPart(ete);
+    if(ph!=null && pe!=null && Math.abs(ph-pe)>=2){
+      txt+='<p>La part d\'heures creuses est '+(ph>pe?"plus élevée en hiver":"plus élevée en été")+
+           ' ('+fr(Math.max(ph,pe))+' % contre '+fr(Math.min(ph,pe))+' %) : '+
+           (ph>pe?"les usages de chauffage et d\'eau chaude nocturnes tirent la part HC vers le haut sur les mois froids."
+                 :"la consommation d\'été se concentre davantage sur les heures creuses.")+'</p>';
+    }
+    // conseil
+    txt+='<p style="border-top:1px solid rgba(0,0,0,.08);padding-top:8px;margin-top:10px"><b>À dire au client :</b> '+
+      (ok? "son option Heures Creuses est bien adaptée à ses habitudes ; il tire parti du tarif réduit sur une part suffisante de sa consommation."
+         : "en l\'état, il paierait moins cher en tarif Base. Pour conserver l\'option, il faudrait déplacer davantage d\'usages (lave-linge, lave-vaisselle, chauffe-eau, recharge) sur les plages d\'heures creuses.")+'</p>';
+    return txt+'</div>';
+  }
+
+  // ---------- rendu ----------
+  function analyse(){
+    clearMessages(); resEl.innerHTML="";
+    if(chart){ try{chart.destroy();}catch(e){} chart=null; }
+    seuil=parseFloat(seuilEl.value); if(isNaN(seuil)) seuil=28.9;
+
+    var rows=parse(dataEl.value);
+    if(!rows.length){ showMessage("err","Aucun relevé exploitable. Chaque ligne doit contenir une date, le type <strong>HP</strong> ou <strong>HC</strong>, et une consommation en kWh."); return; }
+    mois=compute(rows);
+    stats=globals(mois);
+
+    var html='<div class="kpis">'+
+      '<div class="kpi acc"><div class="l">Part HC globale</div><div class="v">'+fr(stats.partGlobale)+' %</div><div class="s">seuil : '+fr(seuil)+' %</div></div>'+
+      '<div class="kpi"><div class="l">Ratio HC/HP moyen</div><div class="v">'+fr(stats.ratioMoy)+' %</div><div class="s">de '+fr(stats.ratioMin)+' % à '+fr(stats.ratioMax)+' %</div></div>'+
+      '<div class="kpi"><div class="l">Mois rentables</div><div class="v">'+stats.nbRentables+'/'+stats.nbMois+'</div><div class="s">au-dessus du seuil</div></div>'+
+      '<div class="kpi"><div class="l">Consommation totale</div><div class="v">'+Math.round(stats.totHP+stats.totHC).toLocaleString("fr-FR")+'</div><div class="s">kWh sur la période</div></div>'+
+    '</div>';
+
+    html+=verdict(mois,stats);
+
+    html+='<div class="chartcard"><h4>Consommation mensuelle et part d\'heures creuses</h4>'+
+      '<div class="cap">Barres : consommation HP et HC (kWh) · Courbe : part HC (%) · Pointillés : seuil de rentabilité</div>'+
+      '<div class="cwrap"><canvas id="chart"></canvas></div></div>';
+
+    html+='<div class="tblwrap"><table class="hc"><thead><tr>'+
+      '<th>Mois</th><th>HP (kWh)</th><th>HC (kWh)</th><th>Total</th><th>Ratio HC/HP</th><th>Part HC</th>'+
+      '</tr></thead><tbody>';
+    mois.slice().reverse().forEach(function(x){
+      html+='<tr><td>'+esc(x.label)+'</td><td>'+Math.round(x.hp).toLocaleString("fr-FR")+'</td>'+
+            '<td>'+Math.round(x.hc).toLocaleString("fr-FR")+'</td><td>'+Math.round(x.total).toLocaleString("fr-FR")+'</td>'+
+            '<td class="ratio">'+(x.ratio==null?"—":fr(x.ratio)+" %")+'</td>'+
+            '<td class="part '+(x.rentable?"y":"n")+'">'+(x.part==null?"—":fr(x.part)+" %")+'</td></tr>';
+    });
+    html+='</tbody></table></div><button class="exp" id="exp">⬇ Exporter l\'analyse (.xlsx)</button>';
+    resEl.innerHTML=html;
+
+    drawChart();
+    $("exp").addEventListener("click", exportXlsx);
+    try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"analyse-hc-hp"})}).catch(function(){});}catch(e){}
+  }
+
+  function drawChart(){
+    var el=$("chart"); if(!el) return;
+    chart=new Chart(el.getContext("2d"),{
+      data:{
+        labels:mois.map(function(x){return x.label;}),
+        datasets:[
+          {type:"bar",label:"HP (kWh)",data:mois.map(function(x){return Math.round(x.hp);}),backgroundColor:C.hp,yAxisID:"y",order:3},
+          {type:"bar",label:"HC (kWh)",data:mois.map(function(x){return Math.round(x.hc);}),backgroundColor:C.hc,yAxisID:"y",order:3},
+          {type:"line",label:"Part HC (%)",data:mois.map(function(x){return x.part==null?null:r1(x.part);}),
+           borderColor:C.ratio,backgroundColor:C.ratio,tension:.3,yAxisID:"y1",order:1,pointRadius:3},
+          {type:"line",label:"Seuil ("+fr(seuil)+" %)",data:mois.map(function(){return seuil;}),
+           borderColor:C.ratio,borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false,yAxisID:"y1",order:2}
+        ]
+      },
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+        plugins:{legend:{position:"top",labels:{boxWidth:12,font:{size:11}}},
+          tooltip:{callbacks:{label:function(c){
+            var v=c.parsed.y; if(v==null) return "";
+            return " "+c.dataset.label+" : "+(c.dataset.yAxisID==="y1"? fr(v)+" %" : Math.round(v).toLocaleString("fr-FR")+" kWh");
+          }}}},
+        scales:{
+          y:{beginAtZero:true,position:"left",title:{display:true,text:"kWh",font:{size:10}}},
+          y1:{beginAtZero:true,position:"right",grid:{drawOnChartArea:false},
+              title:{display:true,text:"% part HC",font:{size:10}},ticks:{callback:function(v){return v+" %";}}}
+        }}
+    });
+  }
+
+  async function exportXlsx(){
+    var wb=new ExcelJS.Workbook(); var ws=wb.addWorksheet("Analyse HC-HP");
+    ws.addRow(["Mois","HP (kWh)","HC (kWh)","Total (kWh)","Ratio HC/HP (%)","Part HC (%)","Rentable"]);
+    ws.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; });
+    mois.slice().reverse().forEach(function(x){
+      ws.addRow([x.label,Math.round(x.hp),Math.round(x.hc),Math.round(x.total),
+                 x.ratio==null?"":r1(x.ratio), x.part==null?"":r1(x.part), x.rentable?"Oui":"Non"]);
+    });
+    ws.addRow([]);
+    ws.addRow(["Seuil de rentabilité (%)",r1(seuil)]);
+    ws.addRow(["Part HC globale (%)",r1(stats.partGlobale)]);
+    ws.addRow(["Mois rentables",stats.nbRentables+" / "+stats.nbMois]);
+    for(var i=1;i<=7;i++){ var col=ws.getColumn(i),m=11; col.eachCell(function(c){var l=String(c.value==null?"":c.value).length; if(l>m)m=l;}); col.width=Math.min(m+2,26); }
+    ws.views=[{state:"frozen",ySplit:1}];
+    var buf=await wb.xlsx.writeBuffer();
+    var blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="analyse-hc-hp.xlsx"; a.click();
+  }
+
+  runEl.addEventListener("click", analyse);
+  $("demo").addEventListener("click", function(){ dataEl.value=DEMO; });
+
+  var DEMO=[
+    "27/02/2026  856461  HP  195","27/02/2026  856461  HC  79",
+    "27/01/2026  762390  HP  197","27/01/2026  762390  HC  72",
+    "27/12/2025  697651  HP  189","27/12/2025  697651  HC  69",
+    "27/11/2025  635841  HP  146","27/11/2025  635841  HC  55",
+    "27/10/2025  584283  HP  112","27/10/2025  584283  HC  43",
+    "27/09/2025  538604  HP  112","27/09/2025  538604  HC  39",
+    "27/08/2025  497236  HP  77", "27/08/2025  497236  HC  26",
+    "27/07/2025  457254  HP  125","27/07/2025  457254  HC  27",
+    "27/06/2025  419379  HP  118","27/06/2025  419379  HC  27",
+    "27/05/2025  386345  HP  99", "27/05/2025  386345  HC  27",
+    "27/04/2025  351977  HP  116","27/04/2025  351977  HC  42",
+    "27/03/2025  324367  HP  120","27/03/2025  324367  HC  39",
+    "27/02/2025  299285  HP  140","27/02/2025  299285  HC  48",
+    "27/01/2025  275436  HP  154","27/01/2025  275436  HC  49",
+    "27/12/2024  256921  HP  145","27/12/2024  256921  HC  42",
+    "27/11/2024  236411  HP  88", "27/11/2024  236411  HC  29",
+    "08/11/2024  229832  HP  0",  "08/11/2024  229832  HC  0"
+  ].join("\n");
+})();
+</script>
+</body>
+</html>

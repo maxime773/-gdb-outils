@@ -37,6 +37,7 @@ window.ATELIER = {
     "excel-remplacement.html",
     "pdf-dataviz.html",
     "gestion-contact.html",
-    "analyse-hc-hp.html"
+    "analyse-hc-hp.html",
+    "compte-client.html"
   ]
 };

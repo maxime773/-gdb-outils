@@ -38,6 +38,7 @@ window.ATELIER = {
     "pdf-dataviz.html",
     "gestion-contact.html",
     "analyse-hc-hp.html",
-    "compte-client.html"
+    "compte-client.html",
+    "facture-energie.html"
   ]
 };

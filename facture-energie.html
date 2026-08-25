@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<!-- OUTIL
+     titre: Analyse de factures d'énergie
+     description: Explique une facture d'électricité ou de gaz, ou compare plusieurs factures en décomposant la variation.
+     categorie: DATA
+     ia: oui
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Analyse de factures d'énergie — Gaz de Bordeaux</title>
+<link rel="stylesheet" href="styles.css" />
+<script src="pdf.min.js"></script>
+<script src="chart.min.js"></script>
+<script src="feedback.js"></script>
+<style>
+  .flist{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+  .frow{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:10px 12px}
+  .frow .idx{font-family:var(--mono);font-size:12px;color:var(--slate);width:20px;flex:none;text-align:right}
+  .frow .fm{flex:1;min-width:0}
+  .frow .fn{font-weight:600;font-size:.9rem;word-break:break-all}
+  .frow .fs{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:2px}
+  .iconbtn{border:1px solid var(--line-2);background:var(--paper);border-radius:var(--radius);width:28px;height:28px;cursor:pointer;font-size:13px;color:var(--ink);flex:none}
+  .iconbtn:hover{border-color:var(--steel)}
+
+  .entete{margin-top:22px;font-family:var(--mono);font-size:11.5px;color:var(--slate);background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:11px 14px}
+  .entete b{color:var(--ink)}
+
+  .say{margin-top:16px;background:var(--steel);color:var(--paper);border-radius:var(--radius);padding:20px 22px;-webkit-print-color-adjust:exact}
+  .say .st{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--signal);margin-bottom:10px}
+  .say p{font-size:1rem;line-height:1.6;margin-bottom:8px}
+  .say p:last-of-type{margin-bottom:0}
+  .say .copy{margin-top:14px;font-family:var(--mono);font-size:11px;background:transparent;border:1px solid rgba(255,255,255,.4);color:var(--paper);border-radius:var(--radius);padding:6px 12px;cursor:pointer}
+  .say .copy.done{border-color:#8FD9B4;color:#8FD9B4}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+  .kpi{border:1px solid var(--line-2);border-radius:var(--radius);padding:13px 15px;background:#fff;border-left:4px solid var(--steel)}
+  .kpi.acc{border-left-color:var(--signal)}
+  .kpi .l{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate)}
+  .kpi .v{font-size:1.4rem;font-weight:800;margin-top:4px;line-height:1}
+  .kpi .s{font-size:.75rem;color:var(--slate);margin-top:3px}
+  @media(max-width:700px){.kpis{grid-template-columns:1fr 1fr}}
+
+  .sect{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--signal);margin:24px 0 10px;font-weight:700}
+
+  .why{background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);overflow:hidden}
+  .why .wr{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .why .wr:last-child{border-bottom:none;background:var(--paper);font-weight:700}
+  .why .wl{flex:1;font-size:.93rem}
+  .why .wv{font-family:var(--mono);font-size:.95rem;font-weight:700;min-width:100px;text-align:right}
+  .up{color:#B3261E}.down{color:var(--ok)}
+
+  .tblwrap{background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);overflow:hidden}
+  table.p{width:100%;border-collapse:collapse;font-size:.88rem}
+  table.p th{text-align:right;font-family:var(--mono);font-weight:600;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--steel);padding:10px 12px;-webkit-print-color-adjust:exact}
+  table.p th:first-child{text-align:left}
+  table.p td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:right}
+  table.p td:first-child{text-align:left}
+  table.p tr:last-child td{border-bottom:none;font-weight:700;background:var(--paper)}
+  .bar{height:5px;background:var(--paper-2);border-radius:3px;overflow:hidden;margin-top:4px}
+  .bar i{display:block;height:100%;background:var(--steel)}
+
+  .alert{margin-top:10px;border:1px solid var(--line-2);border-left:4px solid #B8860B;border-radius:var(--radius);padding:12px 15px;background:#fff}
+  .alert.high{border-left-color:#B3261E}
+  .alert.ok{border-left-color:var(--ok)}
+  .alert .at{font-weight:700;font-size:.92rem;margin-bottom:3px}
+  .alert p{font-size:.85rem;color:var(--slate)}
+
+  .chartcard{margin-top:14px;background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:16px}
+  .chartcard .cwrap{position:relative;height:240px}
+  .ai-note{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:18px;display:flex;align-items:center;gap:8px}
+  .ai-note .d{width:7px;height:7px;border-radius:50%;background:var(--signal);flex:none}
+</style>
+</head>
+<body>
+<div class="wrap tool-page">
+  <a class="back" href="index.html">← Catalogue</a>
+
+  <section class="tool-hero">
+    <span class="eyebrow">DATA · 03</span>
+    <h1>Analyse de factures d'énergie</h1>
+    <p>Déposez une facture pour l'expliquer, ou plusieurs pour comprendre pourquoi le montant évolue. L'analyse commence toujours par ce qu'il faut dire au client, puis donne le détail chiffré.</p>
+  </section>
+
+  <div class="panel">
+    <div class="panel-strip"><span class="k">TRAITEMENT</span> lecture locale · extraction IA · calculs déterministes</div>
+    <div class="panel-body">
+
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Déposer les factures">
+        <div class="drop-icon">⚡</div>
+        <div class="drop-title">Glissez la ou les factures (PDF)</div>
+        <div class="drop-hint">1 facture = analyse · 2 ou plus = comparaison</div>
+        <input type="file" id="file" accept="application/pdf,.pdf" multiple hidden />
+      </div>
+
+      <div class="flist" id="flist"></div>
+
+      <button class="run" id="run" disabled>Analyser</button>
+
+      <div class="progress" id="progress" hidden>
+        <div class="track"><div class="fill" id="fill"></div></div>
+        <div class="pstatus" id="pstatus"></div>
+      </div>
+
+      <div id="messages"></div>
+      <div id="results"></div>
+
+      <div class="ai-note"><span class="d"></span> L'IA lit la facture ; tous les montants et calculs sont vérifiés par le code. Aucun chiffre n'est inventé : une donnée illisible est signalée.</div>
+
+    </div>
+  </div>
+
+  <div class="colophon"><span>Gaz de Bordeaux — DATA · 03</span><span>pdf.js · Chart.js — embarqués</span></div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  pdfjsLib.GlobalWorkerOptions.workerSrc="pdf.worker.min.js";
+  var $=function(id){return document.getElementById(id);};
+  var dropEl=$("drop"), fileEl=$("file"), listEl=$("flist"), runEl=$("run"),
+      progEl=$("progress"), fillEl=$("fill"), statusEl=$("pstatus"), msgEl=$("messages"), resEl=$("results");
+  var files=[], busy=false, F=[], chart=null;
+
+  function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+  function eur(v){ return v==null?"—":(Math.round(v*100)/100).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"; }
+  function eur0(v){ return v==null?"—":Math.round(v).toLocaleString("fr-FR")+" €"; }
+  function ct(v){ return v==null?"—":(Math.round(v*100)/100).toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" c€"; }
+  function fmtSize(b){ if(b<1024)return b+" o"; if(b<1048576)return (b/1024).toFixed(0)+" Ko"; return (b/1048576).toFixed(1)+" Mo"; }
+  function clearMessages(){ msgEl.innerHTML=""; }
+  function showMessage(k,h){ var d=document.createElement("div"); d.className="notice "+k; d.innerHTML=h; msgEl.appendChild(d); }
+  function setProgress(p,t){ progEl.hidden=false; fillEl.style.width=Math.max(0,Math.min(100,p))+"%"; statusEl.textContent=t; }
+  function n(v){ return (typeof v==="number" && isFinite(v))?v:null; }
+
+  // ---------- fichiers ----------
+  function addFiles(fl){
+    clearMessages(); resEl.innerHTML="";
+    Array.prototype.forEach.call(fl||[],function(f){
+      if(f.type!=="application/pdf" && !/\.pdf$/i.test(f.name)){ showMessage("warn","Ignoré (pas un PDF) : <strong>"+esc(f.name)+"</strong>"); return; }
+      files.push(f);
+    });
+    renderList();
+  }
+  function renderList(){
+    if(!files.length){ listEl.innerHTML=""; runEl.disabled=true;
+      dropEl.classList.remove("has");
+      dropEl.innerHTML='<div class="drop-icon">⚡</div><div class="drop-title">Glissez la ou les factures (PDF)</div><div class="drop-hint">1 facture = analyse · 2 ou plus = comparaison</div>';
+      return; }
+    listEl.innerHTML=files.map(function(f,i){
+      return '<div class="frow"><span class="idx">'+(i+1)+'</span><div class="fm"><div class="fn">'+esc(f.name)+'</div>'+
+             '<div class="fs">'+fmtSize(f.size)+'</div></div>'+
+             '<button class="iconbtn" data-rm="'+i+'" title="Retirer">✕</button></div>';
+    }).join("");
+    dropEl.classList.add("has");
+    dropEl.innerHTML='<div class="drop-icon">✅</div><div class="drop-title">'+files.length+' facture(s) chargée(s)</div>'+
+      '<div class="drop-hint">'+(files.length>1?"mode comparaison":"mode analyse")+' · cliquez pour en ajouter</div>';
+    runEl.disabled=busy;
+    runEl.textContent = files.length>1 ? "Comparer les factures" : "Analyser la facture";
+  }
+  listEl.addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b||busy) return;
+    var i=parseInt(b.getAttribute("data-rm"),10);
+    if(!isNaN(i)){ files.splice(i,1); renderList(); resEl.innerHTML=""; }
+  });
+  dropEl.addEventListener("click",function(){ if(!busy) fileEl.click(); });
+  dropEl.addEventListener("keydown",function(e){ if((e.key==="Enter"||e.key===" ")&&!busy){ e.preventDefault(); fileEl.click(); } });
+  fileEl.addEventListener("change",function(e){ addFiles(e.target.files); fileEl.value=""; });
+  ["dragenter","dragover"].forEach(function(ev){ dropEl.addEventListener(ev,function(e){ e.preventDefault(); if(!busy) dropEl.classList.add("over"); }); });
+  ["dragleave","drop"].forEach(function(ev){ dropEl.addEventListener(ev,function(e){ e.preventDefault(); dropEl.classList.remove("over"); }); });
+  dropEl.addEventListener("drop",function(e){ if(!busy) addFiles(e.dataTransfer.files); });
+
+  // ---------- calculs déterministes ----------
+  function toDate(s){ var m=String(s||"").match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/); return m? new Date(+m[3],+m[2]-1,+m[1]) : null; }
+  function enrich(d){
+    var p=d.postes||{};
+    var postes=[
+      {k:"abonnement",  lib:"Abonnement",              v:n(p.abonnement_ht)},
+      {k:"consommation",lib:"Consommation",            v:n(p.consommation_ht)},
+      {k:"acheminement",lib:"Acheminement",            v:n(p.acheminement_ht)},
+      {k:"accise",      lib:d.energie==="gaz"?"Accise (TICGN)":"Accise (TICFE/CSPE)", v:n(p.accise_ht)},
+      {k:"cta",         lib:"CTA",                     v:n(p.cta_ht)},
+      {k:"services",    lib:"Services et prestations", v:n(p.services_ht)},
+      {k:"autres",      lib:"Autres",                  v:n(p.autres_ht)}
+    ].filter(function(x){ return x.v!=null && Math.abs(x.v)>0.001; });
+
+    var sommePostes=postes.reduce(function(s,x){return s+x.v;},0);
+    var ht=n(d.total_ht), ttc=n(d.total_ttc);
+    var tva=d.tva||{};
+    var totTva = n(tva.total_tva);
+    if(totTva==null){ var a=n(tva.taux_5_5), b=n(tva.taux_20); if(a!=null||b!=null) totTva=(a||0)+(b||0); }
+    if(ht==null && sommePostes>0) ht=sommePostes;
+    if(ttc==null && ht!=null && totTva!=null) ttc=ht+totTva;
+
+    var d1=toDate(d.periode_debut), d2=toDate(d.periode_fin);
+    var jours = (d1&&d2)? Math.round((d2-d1)/86400000) : null;
+    var kwh=n(d.consommation_kwh);
+    if(kwh==null){ var hp=n(d.consommation_hp_kwh), hc=n(d.consommation_hc_kwh); if(hp!=null||hc!=null) kwh=(hp||0)+(hc||0); }
+
+    var alertes=[];
+    // contrôles de cohérence
+    if(ht!=null && sommePostes>0 && Math.abs(sommePostes-ht)>0.05)
+      alertes.push({n:"haut",t:"Somme des postes ≠ total HT",p:"Les postes détaillés totalisent "+eur(sommePostes)+" alors que le total HT affiché est "+eur(ht)+" (écart "+eur(Math.abs(sommePostes-ht))+"). À vérifier sur la facture."});
+    if(ht!=null && totTva!=null && ttc!=null && Math.abs(ht+totTva-ttc)>0.05)
+      alertes.push({n:"haut",t:"HT + TVA ≠ TTC",p:eur(ht)+" + "+eur(totTva)+" = "+eur(ht+totTva)+", or le TTC affiché est "+eur(ttc)+"."});
+    (d.champs_illisibles||[]).forEach(function(c){
+      alertes.push({n:"moy",t:"Donnée non lisible : "+c,p:"Ce champ n'a pas pu être lu de façon fiable — à vérifier directement sur la facture avant d'en parler au client."});
+    });
+
+    var acheminementIsole = postes.some(function(x){return x.k==="acheminement";});
+    return {
+      raw:d, postes:postes, sommePostes:sommePostes, ht:ht, ttc:ttc, tva:totTva,
+      jours:jours, kwh:kwh, d1:d1, d2:d2,
+      kwhJour: (kwh!=null&&jours)? kwh/jours : null,
+      prixTTC: (ttc!=null&&kwh)? (ttc/kwh)*100 : null,
+      prixHT:  (ht!=null&&kwh)? (ht/kwh)*100 : null,
+      prixConso: (n(p.consommation_ht)!=null&&kwh)? (p.consommation_ht/kwh) : null,
+      acheminementIsole: acheminementIsole,
+      plusLourd: postes.slice().sort(function(a,b){return b.v-a.v;})[0]||null,
+      alertes: alertes
+    };
+  }
+
+  function periodeStr(f){
+    var a=f.raw.periode_debut||"?", b=f.raw.periode_fin||"?";
+    return a+" au "+b+(f.jours?" ("+f.jours+" j)":"");
+  }
+
+  // ---------- textes ----------
+  function direClientAnalyse(f){
+    var l=[];
+    var energie=f.raw.energie==="gaz"?"de gaz":"d'électricité";
+    l.push("Votre facture "+energie+" s'élève à "+eur0(f.ttc)+" pour la période du "+(f.raw.periode_debut||"?")+" au "+(f.raw.periode_fin||"?")+
+      (f.kwh!=null?", correspondant à "+Math.round(f.kwh).toLocaleString("fr-FR")+" kWh consommés":"")+".");
+    if(f.plusLourd) l.push("Le poste le plus important est "+f.plusLourd.lib.toLowerCase()+", pour "+eur0(f.plusLourd.v)+" hors taxes"+
+      (f.ht?", soit "+Math.round(f.plusLourd.v/f.ht*100)+" % du total hors taxes":"")+".");
+    if(f.kwhJour!=null) l.push("Cela représente en moyenne "+f.kwhJour.toFixed(1).replace(".",",")+" kWh par jour sur la période.");
+    if(f.prixTTC!=null) l.push("Tout compris — abonnement, consommation et taxes — le prix revient à "+ct(f.prixTTC)+" par kWh.");
+    return l;
+  }
+  function direClientCompare(a,b,eff){
+    var l=[], diff=(b.ttc!=null&&a.ttc!=null)?b.ttc-a.ttc:null;
+    if(diff==null) return ["Les montants n'ont pas pu être comparés de façon fiable."];
+    var sens=diff>0?"augmenté":"diminué";
+    l.push("Votre facture a "+sens+" de "+eur0(Math.abs(diff))+", passant de "+eur0(a.ttc)+" à "+eur0(b.ttc)+".");
+    var princ=eff.slice().sort(function(x,y){return Math.abs(y.v)-Math.abs(x.v);})[0];
+    if(princ) l.push("La cause principale est "+princ.explain+", pour environ "+eur0(Math.abs(princ.v))+".");
+    if(a.kwh!=null&&b.kwh!=null){
+      var dv=b.kwh-a.kwh;
+      l.push("Votre consommation est passée de "+Math.round(a.kwh).toLocaleString("fr-FR")+" à "+Math.round(b.kwh).toLocaleString("fr-FR")+" kWh"+
+        (Math.abs(dv)<1?"" : (dv>0?", soit "+Math.round(dv).toLocaleString("fr-FR")+" kWh de plus":", soit "+Math.round(-dv).toLocaleString("fr-FR")+" kWh de moins"))+".");
+    }
+    return l;
+  }
+
+  function effets(a,b){
+    var e=[];
+    var pa=a.prixConso, pb=b.prixConso;
+    if(pa!=null&&pb!=null&&a.kwh!=null&&b.kwh!=null){
+      e.push({lib:"Effet volume (consommation)", v:(b.kwh-a.kwh)*pa, explain:"une évolution de votre consommation"});
+      e.push({lib:"Effet prix (tarif du kWh)",   v:(pb-pa)*b.kwh,    explain:"l'évolution du prix du kWh"});
+    }
+    function poste(k){ 
+      var x=a.postes.filter(function(p){return p.k===k;})[0], y=b.postes.filter(function(p){return p.k===k;})[0];
+      return (y?y.v:0)-(x?x.v:0);
+    }
+    var dTax=poste("accise")+poste("cta");
+    if(Math.abs(dTax)>0.01) e.push({lib:"Taxes et contributions", v:dTax, explain:"l'évolution des taxes et contributions"});
+    var dAbo=poste("abonnement");
+    if(Math.abs(dAbo)>0.01) e.push({lib:"Abonnement", v:dAbo, explain:"l'évolution de l'abonnement"});
+    return e;
+  }
+
+  // ---------- rendu ----------
+  function blocPostes(f,ref){
+    var h='<div class="tblwrap"><table class="p"><thead><tr><th>Poste</th><th>Montant HT</th><th>Part</th>'+
+          (ref?'<th>Écart</th>':'')+'</tr></thead><tbody>';
+    f.postes.forEach(function(p){
+      var part=f.ht? (p.v/f.ht*100) : null;
+      var d=null;
+      if(ref){ var r=ref.postes.filter(function(x){return x.k===p.k;})[0]; d=p.v-(r?r.v:0); }
+      h+='<tr><td>'+esc(p.lib)+'</td><td>'+eur(p.v)+'</td>'+
+         '<td>'+(part!=null?Math.round(part)+' %<div class="bar"><i style="width:'+Math.min(100,part)+'%"></i></div>':'—')+'</td>'+
+         (ref?'<td class="'+(d>0?"up":(d<0?"down":""))+'">'+(d==null?"—":(d>0?"+":"")+eur(d))+'</td>':'')+'</tr>';
+    });
+    h+='<tr><td>Total HT</td><td>'+eur(f.ht)+'</td><td>100 %</td>'+(ref?'<td>'+((f.ht!=null&&ref.ht!=null)?((f.ht-ref.ht>0?"+":"")+eur(f.ht-ref.ht)):"—")+'</td>':'')+'</tr>';
+    h+='</tbody></table></div>';
+    return h;
+  }
+
+  function blocAlertes(list){
+    var h='<div class="sect">6 · Alertes</div>';
+    if(!list.length) h+='<div class="alert ok"><div class="at">✓ Aucune incohérence détectée</div><p>Les totaux se recoupent et l\'ensemble des champs attendus a été lu.</p></div>';
+    list.forEach(function(a){ h+='<div class="alert'+(a.n==="haut"?" high":"")+'"><div class="at">'+(a.n==="haut"?"🔴":"🟠")+' '+esc(a.t)+'</div><p>'+esc(a.p)+'</p></div>'; });
+    return h;
+  }
+
+  function render(){
+    var html="";
+    if(F.length===1){
+      var f=F[0];
+      // 1 en-tête
+      html+='<div class="entete"><b>'+esc((f.raw.energie==="gaz")?"Gaz":"Électricité")+'</b>'+
+        (f.raw.reference?' · Réf. <b>'+esc(f.raw.reference)+'</b>':'')+
+        ' · Période <b>'+esc(periodeStr(f))+'</b>'+
+        (f.raw.option_tarifaire?' · Option <b>'+esc(f.raw.option_tarifaire)+'</b>':'')+
+        (f.raw.puissance?' · <b>'+esc(f.raw.puissance)+'</b>':'')+
+        (f.raw.fournisseur?' · '+esc(f.raw.fournisseur):'')+'</div>';
+      // 2 à dire au client
+      var dire=direClientAnalyse(f);
+      html+='<div class="say"><div class="st">2 · À dire au client</div>'+dire.map(function(p){return '<p>'+esc(p)+'</p>';}).join("")+
+        '<button class="copy" id="cp">Copier</button></div>';
+      // 3 chiffres clés
+      html+='<div class="sect">3 · Chiffres clés</div><div class="kpis">'+
+        '<div class="kpi acc"><div class="l">Total TTC</div><div class="v">'+eur0(f.ttc)+'</div><div class="s">dont TVA '+eur0(f.tva)+'</div></div>'+
+        '<div class="kpi"><div class="l">Consommation</div><div class="v">'+(f.kwh!=null?Math.round(f.kwh).toLocaleString("fr-FR"):"—")+'</div><div class="s">kWh sur '+(f.jours||"?")+' jours</div></div>'+
+        '<div class="kpi"><div class="l">Moyenne</div><div class="v">'+(f.kwhJour!=null?f.kwhJour.toFixed(1).replace(".",","):"—")+'</div><div class="s">kWh / jour</div></div>'+
+        '<div class="kpi"><div class="l">Prix moyen TTC</div><div class="v">'+ct(f.prixTTC)+'</div><div class="s">par kWh'+(f.acheminementIsole?"":" · acheminement non isolé")+'</div></div>'+
+      '</div>';
+      if(!f.acheminementIsole) html+='<p style="font-size:.82rem;color:var(--slate);margin-top:8px">L\'acheminement n\'est pas isolé sur cette facture : le prix moyen inclut donc la part réseau.</p>';
+      // 5 détail
+      html+='<div class="sect">5 · Détail des postes</div>'+blocPostes(f,null);
+      html+='<div class="chartcard"><div class="cwrap"><canvas id="ch"></canvas></div></div>';
+      // 6 alertes
+      html+=blocAlertes(f.alertes);
+    } else {
+      var a=F[0], b=F[F.length-1];
+      var eff=effets(a,b);
+      html+='<div class="entete">Comparaison de <b>'+F.length+'</b> factures · '+
+        F.map(function(x){return esc(periodeStr(x));}).join(" → ")+'</div>';
+      var dire2=direClientCompare(a,b,eff);
+      html+='<div class="say"><div class="st">2 · À dire au client</div>'+dire2.map(function(p){return '<p>'+esc(p)+'</p>';}).join("")+
+        '<button class="copy" id="cp">Copier</button></div>';
+      // 3 chiffres clés : une ligne par facture
+      html+='<div class="sect">3 · Chiffres clés par facture</div><div class="tblwrap"><table class="p"><thead><tr>'+
+        '<th>Facture</th><th>Total TTC</th><th>kWh</th><th>kWh/j</th><th>Prix moyen</th></tr></thead><tbody>';
+      F.forEach(function(x,i){
+        html+='<tr><td>'+esc(x.raw.periode_debut||("Facture "+(i+1)))+' → '+esc(x.raw.periode_fin||"")+'</td>'+
+              '<td>'+eur(x.ttc)+'</td><td>'+(x.kwh!=null?Math.round(x.kwh).toLocaleString("fr-FR"):"—")+'</td>'+
+              '<td>'+(x.kwhJour!=null?x.kwhJour.toFixed(1).replace(".",","):"—")+'</td><td>'+ct(x.prixTTC)+'</td></tr>';
+      });
+      html+='</tbody></table></div>';
+      // 4 pourquoi ça change
+      html+='<div class="sect">4 · Pourquoi ça change</div><div class="why">';
+      eff.slice(0,4).forEach(function(e){
+        html+='<div class="wr"><span class="wl">'+esc(e.lib)+'</span><span class="wv '+(e.v>0?"up":"down")+'">'+(e.v>0?"+":"")+eur(e.v)+'</span></div>';
+      });
+      var tot=(b.ht!=null&&a.ht!=null)?b.ht-a.ht:null;
+      html+='<div class="wr"><span class="wl">Variation totale HT</span><span class="wv '+(tot>0?"up":"down")+'">'+(tot==null?"—":((tot>0?"+":"")+eur(tot)))+'</span></div>';
+      if(b.ttc!=null&&a.ttc!=null) html+='<div class="wr"><span class="wl">Variation totale TTC</span><span class="wv '+((b.ttc-a.ttc)>0?"up":"down")+'">'+((b.ttc-a.ttc)>0?"+":"")+eur(b.ttc-a.ttc)+'</span></div>';
+      html+='</div>';
+      // 5 détail
+      html+='<div class="sect">5 · Détail des postes (dernière facture)</div>'+blocPostes(b,a);
+      html+='<div class="chartcard"><div class="cwrap"><canvas id="ch"></canvas></div></div>';
+      // 6 alertes
+      var all=[]; F.forEach(function(x,i){ x.alertes.forEach(function(al){ all.push({n:al.n,t:"Facture "+(i+1)+" — "+al.t,p:al.p}); }); });
+      html+=blocAlertes(all);
+    }
+    resEl.innerHTML=html;
+
+    var cp=$("cp");
+    if(cp) cp.addEventListener("click",function(){
+      var t=Array.prototype.map.call(cp.parentNode.querySelectorAll("p"),function(p){return p.textContent;}).join(" ");
+      navigator.clipboard.writeText(t).catch(function(){});
+      cp.textContent="Copié !"; cp.classList.add("done");
+      setTimeout(function(){ cp.textContent="Copier"; cp.classList.remove("done"); },1600);
+    });
+    drawChart();
+  }
+
+  function drawChart(){
+    var el=$("ch"); if(!el) return;
+    if(chart){ try{chart.destroy();}catch(e){} }
+    var PAL=["#0B3A67","#2C6DA3","#EF7D00","#6FA8D6","#F5A623","#1C7C54","#94A9BC"];
+    if(F.length===1){
+      var f=F[0];
+      chart=new Chart(el.getContext("2d"),{type:"doughnut",
+        data:{labels:f.postes.map(function(p){return p.lib;}),
+              datasets:[{data:f.postes.map(function(p){return Math.round(p.v*100)/100;}),backgroundColor:f.postes.map(function(_,i){return PAL[i%PAL.length];})}]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:"right",labels:{boxWidth:12,font:{size:11}}},
+            tooltip:{callbacks:{label:function(c){return " "+c.label+" : "+eur(c.parsed);}}}}}});
+    } else {
+      chart=new Chart(el.getContext("2d"),{type:"bar",
+        data:{labels:F.map(function(x,i){return x.raw.periode_fin||("F"+(i+1));}),
+          datasets:[{label:"Total TTC",data:F.map(function(x){return x.ttc;}),backgroundColor:PAL[0],yAxisID:"y"},
+                    {type:"line",label:"kWh",data:F.map(function(x){return x.kwh;}),borderColor:PAL[2],backgroundColor:PAL[2],tension:.3,yAxisID:"y1"}]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{position:"top",labels:{boxWidth:12,font:{size:11}}}},
+          scales:{y:{beginAtZero:true,title:{display:true,text:"€ TTC",font:{size:10}}},
+                  y1:{beginAtZero:true,position:"right",grid:{drawOnChartArea:false},title:{display:true,text:"kWh",font:{size:10}}}}}});
+    }
+  }
+
+  // ---------- orchestration ----------
+  runEl.addEventListener("click", async function(){
+    if(!files.length||busy) return;
+    busy=true; runEl.disabled=true; runEl.textContent="Analyse…"; clearMessages(); resEl.innerHTML="";
+    try{
+      var out=[];
+      for(var i=0;i<files.length;i++){
+        setProgress((i/files.length)*45,"Lecture de « "+files[i].name+" »…");
+        var pdf=await pdfjsLib.getDocument({data:new Uint8Array(await files[i].arrayBuffer())}).promise;
+        var text="";
+        for(var p=1;p<=pdf.numPages;p++){ var pg=await pdf.getPage(p); var tc=await pg.getTextContent(); text+=tc.items.map(function(it){return it.str;}).join(" ")+"\n"; }
+        if(!text.trim()) throw new Error("aucun texte extrait de « "+files[i].name+" » — facture scannée ?");
+        setProgress(45+(i/files.length)*45,"Extraction des données ("+(i+1)+"/"+files.length+")…");
+        var resp=await fetch("/.netlify/functions/facture-energie",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:text})});
+        var data=await resp.json();
+        if(!resp.ok||data.error) throw new Error((data&&data.error)||("erreur "+resp.status));
+        out.push(enrich(data));
+      }
+      // trier par date de début (chronologique)
+      out.sort(function(x,y){ return (x.d1||0)-(y.d1||0); });
+      F=out;
+      setProgress(100,"Terminé.");
+      render();
+      try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"facture-energie"})}).catch(function(){});}catch(e){}
+    }catch(err){
+      progEl.hidden=true;
+      showMessage("err","Analyse impossible : "+esc(err.message||String(err))+".");
+    }finally{
+      busy=false; renderList();
+    }
+  });
+})();
+</script>
+</body>
+</html>

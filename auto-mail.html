@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<!-- OUTIL
+     titre: Auto Mail — atelier des intentions
+     description: Teste et affine les business descriptions de détection d'intention à partir d'emails clients réels.
+     categorie: DATA
+     ia: oui
+-->
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Auto Mail — atelier des intentions · Gaz de Bordeaux</title>
+<link rel="stylesheet" href="styles.css" />
+<script src="exceljs.min.js"></script>
+<script src="feedback.js"></script>
+<style>
+  .tabs{display:flex;gap:6px;margin-top:22px;flex-wrap:wrap;border-bottom:1px solid var(--line-2)}
+  .tab{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;padding:10px 15px;border:1px solid var(--line-2);border-bottom:none;background:var(--paper);border-radius:6px 6px 0 0;cursor:pointer;color:var(--slate);position:relative;top:1px}
+  .tab.on{background:#fff;color:var(--steel);font-weight:700;border-bottom:1px solid #fff}
+  .pane{display:none}
+  .pane.on{display:block}
+
+  .savebar{display:flex;align-items:center;gap:10px;margin-top:14px;font-family:var(--mono);font-size:11.5px;color:var(--slate)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+  .dot.wait{background:var(--signal)}
+  .dot.err{background:#B3261E}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
+  .st{background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:13px 15px;border-left:4px solid var(--steel)}
+  .st.acc{border-left-color:var(--signal)}
+  .st .l{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate)}
+  .st .v{font-size:1.5rem;font-weight:800;margin-top:4px;line-height:1}
+  @media(max-width:700px){.stats{grid-template-columns:1fr 1fr}}
+
+  .icard{background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px}
+  .ihead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .iname{font-size:1.05rem;font-weight:700;color:var(--steel)}
+  .iid{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:2px}
+  .iacts{display:flex;gap:6px;flex-wrap:wrap}
+  .btn{font-family:var(--sans);font-size:.85rem;font-weight:600;padding:8px 13px;border-radius:var(--radius);border:1px solid var(--line-2);background:#fff;color:var(--ink);cursor:pointer}
+  .btn:hover{border-color:var(--steel)}
+  .btn.p{background:var(--steel);color:var(--paper);border-color:var(--steel)}
+  .btn.a{background:var(--signal);color:#fff;border-color:var(--signal)}
+  .btn.g{background:transparent;color:var(--slate);border-color:transparent}
+  .btn.g:hover{background:var(--paper-2);color:var(--ink)}
+  .btn.d:hover{color:#B3261E;border-color:#B3261E}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  .prev{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  @media(max-width:700px){.prev{grid-template-columns:1fr}}
+  .pb{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px}
+  .pl{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);margin-bottom:6px}
+  .pc{font-size:.83rem;line-height:1.5;white-space:pre-wrap;max-height:88px;overflow:hidden;position:relative}
+  .pc::after{content:"";position:absolute;bottom:0;left:0;right:0;height:26px;background:linear-gradient(transparent,var(--paper))}
+  .badge{display:inline-block;font-family:var(--mono);font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:999px}
+  .b-ok{color:var(--ok);background:var(--ok-soft)}
+  .b-ex{color:var(--steel);background:#E4ECF4}
+
+  textarea,input[type=text],select{width:100%;padding:11px 12px;border:1px solid var(--line-2);border-radius:var(--radius);font-family:var(--sans);font-size:.92rem;color:var(--ink);background:#fff}
+  textarea{resize:vertical;line-height:1.55}
+  textarea.mono{font-family:var(--mono);font-size:12.5px;line-height:1.6}
+  textarea:focus,input:focus,select:focus{outline:none;border-color:var(--signal)}
+  label.fl{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--slate);margin-bottom:6px}
+  .fg{margin-bottom:16px}
+  .fh{font-size:.8rem;color:var(--slate);margin-top:5px}
+
+  .tpanel{margin-top:14px;background:var(--paper);border:1px dashed var(--line-2);border-radius:var(--radius);padding:16px}
+  .tpanel.hidden{display:none}
+
+  .res{margin-top:14px;border-radius:var(--radius);padding:14px 16px;border:1px solid}
+  .res.ok{background:var(--ok-soft);border-color:#BFD9C9}
+  .res.ko{background:#FBE9E7;border-color:#F3C7C2}
+  .res .rt{font-weight:800;font-size:.98rem;margin-bottom:4px}
+  .res.ok .rt{color:var(--ok)}
+  .res.ko .rt{color:#B3261E}
+  .res .rj{font-size:.87rem;color:#333}
+
+  .acts{margin-top:14px;background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:14px 16px}
+  .acts .at{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--signal);margin-bottom:10px;font-weight:700}
+  .opt{display:flex;align-items:flex-start;gap:9px;padding:7px 0;cursor:pointer;font-size:.9rem}
+  .opt input{margin-top:3px;width:16px;height:16px;accent-color:var(--steel);flex:none}
+  .sub{margin:4px 0 4px 26px;padding-left:12px;border-left:2px solid var(--line-2)}
+  .sub.hidden{display:none}
+
+  table.t{width:100%;border-collapse:collapse;font-size:.86rem;background:#fff}
+  .tw{border:1px solid var(--line-2);border-radius:var(--radius);overflow:hidden;margin-top:14px}
+  table.t th{text-align:left;font-family:var(--mono);font-weight:600;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--steel);padding:10px 11px}
+  table.t td{padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.t tr:last-child td{border-bottom:none}
+  td.em{font-style:italic;color:#333;max-width:340px}
+  .vd{font-weight:700}.vd.y{color:var(--ok)}.vd.n{color:#B3261E}
+
+  .drop{border:2px dashed var(--line-2);border-radius:var(--radius);padding:30px 20px;text-align:center;cursor:pointer;background:#fff}
+  .drop:hover{border-color:var(--signal);background:var(--signal-soft)}
+  .drop .di{font-size:26px}
+  .drop .dt{font-weight:700;margin-top:8px}
+  .drop .dh{font-size:.85rem;color:var(--slate);margin-top:3px}
+
+  .ov{position:fixed;inset:0;background:rgba(11,58,103,.55);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
+  .ov.hidden{display:none}
+  .md{background:#fff;border-radius:10px;max-width:880px;width:100%;max-height:90vh;overflow-y:auto}
+  .mh{padding:18px 22px;border-bottom:1px solid var(--line-2);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:5}
+  .mt{font-size:1.1rem;font-weight:700;color:var(--steel)}
+  .mb{padding:20px 22px}
+  .mf{padding:16px 22px;border-top:1px solid var(--line-2);display:flex;justify-content:flex-end;gap:8px;background:var(--paper)}
+  .x{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--slate);line-height:1}
+
+  .diff{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;font-family:var(--mono);font-size:11.5px;line-height:1.6;white-space:pre-wrap;max-height:260px;overflow-y:auto}
+  .sumbox{background:var(--signal-soft);border:1px solid #F0D3B4;border-radius:var(--radius);padding:12px 14px;font-size:.88rem;color:#8A4B12;margin-bottom:14px;white-space:pre-wrap}
+
+  .toast{position:fixed;bottom:22px;right:22px;background:var(--steel);color:var(--paper);padding:12px 18px;border-radius:var(--radius);font-size:.9rem;z-index:1000;box-shadow:0 10px 28px -12px rgba(0,0,0,.5)}
+  .toast.hidden{display:none}
+  .ai-note{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:18px;display:flex;align-items:center;gap:8px}
+  .ai-note .d{width:7px;height:7px;border-radius:50%;background:var(--signal);flex:none}
+  .empty{color:var(--slate);font-size:.9rem;padding:16px 0}
+</style>
+</head>
+<body>
+<div class="wrap tool-page">
+  <a class="back" href="index.html">← Catalogue</a>
+
+  <section class="tool-hero">
+    <span class="eyebrow">DATA · 04</span>
+    <h1>Auto Mail — atelier des intentions</h1>
+    <p>Testez de vrais emails clients contre vos business descriptions, validez ou corrigez chaque détection, et laissez les prompts s'affiner au fil des tests. Tout le travail est enregistré sur le serveur.</p>
+  </section>
+
+  <div class="savebar"><span class="dot" id="sdot"></span><span id="stext">Chargement du référentiel…</span></div>
+
+  <div class="tabs">
+    <button class="tab on" id="t-int">Intentions</button>
+    <button class="tab" id="t-rec">Recette globale</button>
+    <button class="tab" id="t-base">Base d'exemples</button>
+    <button class="tab" id="t-io">Import / Export</button>
+  </div>
+
+  <!-- ============ INTENTIONS ============ -->
+  <div class="pane on" id="p-int">
+    <div class="stats" id="stats"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px;gap:10px;flex-wrap:wrap">
+      <div style="font-weight:700;font-size:1.05rem">Intentions configurées</div>
+      <button class="btn p" id="b-new">+ Nouvelle intention</button>
+    </div>
+    <div id="ilist"></div>
+  </div>
+
+  <!-- ============ RECETTE GLOBALE ============ -->
+  <div class="pane" id="p-rec">
+    <div class="panel" style="margin-top:18px">
+      <div class="panel-strip"><span class="k">RECETTE</span> l'email est confronté à toutes les intentions</div>
+      <div class="panel-body">
+        <div class="fg">
+          <label class="fl" for="g-email">Email client à analyser</label>
+          <textarea id="g-email" rows="7" placeholder="Collez ici un email client anonymisé…"></textarea>
+          <div class="fh">Séparez plusieurs emails par une ligne contenant uniquement <code>---</code>.</div>
+        </div>
+        <button class="run" id="b-gtest">Analyser</button>
+        <div class="progress" id="gprog" hidden><div class="track"><div class="fill" id="gfill"></div></div><div class="pstatus" id="gstat"></div></div>
+        <div id="gmsg"></div>
+        <div id="gres"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ BASE D'EXEMPLES ============ -->
+  <div class="pane" id="p-base">
+    <p style="margin-top:18px;color:var(--slate);font-size:.92rem">Chaque exemple validé est réinjecté dans le prompt lors des tests suivants : plus la base grandit, plus la détection se stabilise.</p>
+    <div id="blist"></div>
+  </div>
+
+  <!-- ============ IMPORT / EXPORT ============ -->
+  <div class="pane" id="p-io">
+    <div class="panel" style="margin-top:18px">
+      <div class="panel-strip"><span class="k">IMPORT</span> test en masse depuis un fichier</div>
+      <div class="panel-body">
+        <p style="font-size:.9rem;color:var(--slate);margin-bottom:14px">Téléchargez le modèle, remplissez-le avec des emails clients anonymisés, puis redéposez-le ici. Chaque email sera confronté à toutes les intentions.</p>
+        <button class="btn a" id="b-tpl">⬇ Télécharger le modèle Excel</button>
+        <div class="drop" id="drop" tabindex="0" role="button" style="margin-top:16px">
+          <div class="di">📄</div><div class="dt">Glissez le fichier rempli</div><div class="dh">.xlsx ou .csv — colonne A : email client · colonne B (facultatif) : intention attendue</div>
+          <input type="file" id="file" accept=".xlsx,.csv" hidden />
+        </div>
+        <div class="progress" id="bprog" hidden><div class="track"><div class="fill" id="bfill"></div></div><div class="pstatus" id="bstat"></div></div>
+        <div id="bmsg"></div>
+        <div id="bres"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <div class="panel-strip"><span class="k">EXPORT</span> sauvegarde et transfert vers la production</div>
+      <div class="panel-body">
+        <p style="font-size:.9rem;color:var(--slate);margin-bottom:14px">Exportez le référentiel complet — business descriptions, templates et bases d'exemples — pour le transmettre au prestataire ou en garder une copie.</p>
+        <button class="btn" id="b-expx">⬇ Export Excel</button>
+        <button class="btn" id="b-expj" style="margin-left:8px">⬇ Export JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ai-note"><span class="d"></span> Le matching est réalisé par un modèle d'IA à partir de vos seules business descriptions. N'utilisez que des emails anonymisés.</div>
+
+  <div class="colophon" style="margin-top:26px"><span>Gaz de Bordeaux — DATA · 04</span><span>ExcelJS — embarqué</span></div>
+</div>
+
+<!-- modal édition -->
+<div class="ov hidden" id="mod">
+  <div class="md">
+    <div class="mh"><span class="mt" id="mod-t">Nouvelle intention</span><button class="x" id="mod-x">×</button></div>
+    <div class="mb">
+      <div class="fg"><label class="fl" for="f-name">Nom de l'intention</label>
+        <input type="text" id="f-name" placeholder="Ex. Information HP/HC" />
+        <div class="fh">Sert de valeur à la variable « Intention » renvoyée au moteur d'emails.</div></div>
+      <div class="fg"><label class="fl" for="f-desc">Business description (prompt)</label>
+        <textarea id="f-desc" class="mono" rows="14" placeholder="CHAMPS LEXICAUX :&#10;- …&#10;&#10;INTENTIONS À DÉTECTER :&#10;- …&#10;&#10;EXCEPTIONS (ne PAS matcher) :&#10;- …&#10;&#10;EXEMPLES POSITIFS :&#10;- …"></textarea></div>
+      <div class="fg"><label class="fl" for="f-tpl">Template de réponse</label>
+        <textarea id="f-tpl" rows="10" placeholder="Bonjour,&#10;&#10;Merci d'avoir pris le temps de nous écrire.&#10;…"></textarea></div>
+    </div>
+    <div class="mf"><button class="btn" id="mod-c">Annuler</button><button class="btn p" id="mod-s">Enregistrer</button></div>
+  </div>
+</div>
+
+<!-- modal affinage -->
+<div class="ov hidden" id="ref">
+  <div class="md">
+    <div class="mh"><span class="mt">Évolution proposée des business descriptions</span><button class="x" id="ref-x">×</button></div>
+    <div class="mb">
+      <div class="sumbox" id="ref-sum"></div>
+      <div class="fg"><label class="fl" id="ref-l1"></label><div class="diff" id="ref-d1"></div></div>
+      <div class="fg"><label class="fl" id="ref-l2"></label><div class="diff" id="ref-d2"></div></div>
+      <p style="font-size:.83rem;color:var(--slate)">Relisez avant d'appliquer : ces textes remplaceront les business descriptions actuelles.</p>
+    </div>
+    <div class="mf"><button class="btn" id="ref-c">Annuler</button><button class="btn p" id="ref-a">Appliquer les modifications</button></div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+  var $=function(i){return document.getElementById(i);};
+  var D={intentions:[],version:0};
+  var pendingRefine=null;
+
+  /* ---------- référentiel par défaut (amorçage au premier lancement) ---------- */
+  var DEFAULTS=[
+    {id:"HPHC-001",name:"Information HP/HC",description:"Détecter une demande d'information concernant les horaires Heures Pleines / Heures Creuses.\n\nCHAMPS LEXICAUX :\n- \"heures pleines\", \"heures creuses\", \"HP\", \"HC\", \"HP/HC\"\n- \"horaires\", \"plages horaires\", \"tarifs heures\"\n- \"tarif jour\", \"tarif nuit\", \"heures de nuit\"\n\nINTENTIONS À DÉTECTER :\n- Le client souhaite connaître ses horaires HP/HC\n- Le client demande à quelle heure commencent/finissent ses HP ou HC\n- Le client veut vérifier ses plages horaires actuelles\n\nEXCEPTIONS (ne PAS matcher) :\n- Si le client souhaite CHANGER ses horaires HP/HC → orienter vers \"Modification contrat\"\n- Si le client conteste sa facturation HP/HC → orienter vers \"Réclamation facture\"\n- Si le client demande quelles sont les heures du service client → NO MATCH\n\nEXEMPLES POSITIFS :\n- \"Je voudrais connaître mes heures creuses\"\n- \"Quels sont mes horaires HP/HC svp\"\n- \"À quelle heure commencent mes heures de nuit ?\"",template:"Bonjour,\n\nMerci d'avoir pris le temps de nous écrire.\n\nVous souhaitez connaître vos horaires Heures Pleines / Heures Creuses.\n\nCes horaires sont propres à votre contrat et à votre zone géographique. Vous pouvez les retrouver facilement :\n\n1. Sur votre dernière facture, section \"Informations contractuelles\"\n2. Dans votre espace client sur gazdebordeaux.fr\n\nCordialement,\nL'équipe Gaz de Bordeaux",exemples:[]},
+    {id:"CONX-002",name:"Problème de connexion à mon espace client",description:"Détecter un problème d'accès à l'espace client en ligne.\n\nCHAMPS LEXICAUX :\n- \"espace client\", \"mon compte\", \"connexion\", \"se connecter\"\n- \"mot de passe\", \"identifiant\", \"login\"\n- \"impossible\", \"erreur\", \"ne fonctionne pas\", \"bloqué\"\n- \"réinitialiser\", \"perdu\", \"oublié\"\n\nINTENTIONS À DÉTECTER :\n- Le client n'arrive pas à se connecter à son espace client\n- Le client a oublié son mot de passe\n- Le client reçoit un message d'erreur lors de la connexion\n\nEXCEPTIONS (ne PAS matcher) :\n- Si le client veut CRÉER un compte → orienter vers \"Création compte\"\n- Si le client veut résilier son contrat → orienter vers \"Résiliation\"\n\nEXEMPLES POSITIFS :\n- \"Je n'arrive pas à me connecter à mon espace client\"\n- \"J'ai oublié mon mot de passe\"",template:"Bonjour,\n\nMerci d'avoir pris le temps de nous écrire.\n\nJe comprends que vous rencontrez des difficultés pour vous connecter à votre espace client.\n\n1. Réinitialiser votre mot de passe depuis \"Mot de passe oublié ?\"\n2. Vérifier votre identifiant (email ou numéro client)\n3. Essayer un autre navigateur ou la navigation privée\n\nCordialement,\nL'équipe Gaz de Bordeaux",exemples:[]},
+    {id:"PARR-003",name:"Fonctionnement du parrainage",description:"Détecter une demande d'information sur le programme de parrainage.\n\nCHAMPS LEXICAUX :\n- \"parrainage\", \"parrainer\", \"parrain\", \"filleul\"\n- \"code parrain\", \"code de parrainage\"\n- \"prime\", \"bonus\", \"récompense\", \"avantage\"\n\nINTENTIONS À DÉTECTER :\n- Le client souhaite parrainer quelqu'un\n- Le client demande comment fonctionne le programme\n- Le client veut connaître les avantages ou son code parrain\n\nEXCEPTIONS (ne PAS matcher) :\n- Si le client a déjà parrainé et conteste le non-versement de sa prime → \"Réclamation parrainage\"\n\nEXEMPLES POSITIFS :\n- \"Comment fonctionne votre parrainage ?\"\n- \"Je voudrais parrainer un ami\"",template:"Bonjour,\n\nMerci de votre intérêt pour notre programme de parrainage.\n\n- 30 € offerts pour chaque filleul qui souscrit\n- 20 € offerts à votre filleul sur sa première facture\n- Votre code parrain est disponible dans votre espace client, rubrique \"Mes avantages\"\n\nCordialement,\nL'équipe Gaz de Bordeaux",exemples:[]},
+    {id:"RESI-004",name:"Comment résilier",description:"Détecter une demande d'information sur la procédure de résiliation.\n\nCHAMPS LEXICAUX :\n- \"résilier\", \"résiliation\", \"arrêter\", \"clôturer\"\n- \"déménagement\", \"déménager\"\n- \"changer de fournisseur\"\n\nINTENTIONS À DÉTECTER :\n- Le client souhaite résilier son contrat\n- Le client déménage et veut clôturer son contrat\n- Le client change de fournisseur\n\nEXCEPTIONS (ne PAS matcher) :\n- Si le client a DÉJÀ résilié et rencontre un problème → \"Réclamation résiliation\"\n- Si succession ou décès → \"Succession\"\n\nEXEMPLES POSITIFS :\n- \"Comment résilier mon contrat ?\"\n- \"Je déménage, comment faire ?\"",template:"Bonjour,\n\nMerci d'avoir pris le temps de nous écrire.\n\nPour un déménagement : rendez-vous dans votre espace client, rubrique \"Mon contrat\" > \"Déménagement\".\nPour un changement de fournisseur : aucune démarche de votre côté, votre nouveau fournisseur s'en charge.\n\nAucun préavis ni frais de résiliation.\n\nCordialement,\nL'équipe Gaz de Bordeaux",exemples:[]},
+    {id:"ECHE-005",name:"Modifier mon échéancier",description:"Détecter une demande de modification de l'échéancier de paiement (mensualités).\n\nCHAMPS LEXICAUX :\n- \"échéancier\", \"mensualité\", \"mensualités\"\n- \"modifier\", \"changer\", \"ajuster\", \"baisser\", \"augmenter\"\n- \"trop élevé\", \"trop cher\"\n- \"prélèvement mensuel\"\n\nINTENTIONS À DÉTECTER :\n- Le client veut modifier le montant de ses mensualités\n- Le client trouve ses mensualités trop élevées ou trop basses\n\nEXCEPTIONS (ne PAS matcher) :\n- Si le client demande un REMBOURSEMENT → \"Demande de remboursement\"\n- Si le client veut changer la DATE de prélèvement → \"Modification date prélèvement\"\n- Si difficultés financières → \"Difficultés de paiement\"\n\nEXEMPLES POSITIFS :\n- \"Je voudrais modifier mes mensualités\"\n- \"Pouvez-vous baisser mes prélèvements ?\"",template:"Bonjour,\n\nMerci d'avoir pris le temps de nous écrire.\n\nVous pouvez modifier votre échéancier depuis votre espace client, rubrique \"Mes paiements\" > \"Mon échéancier\".\nLa nouvelle mensualité s'applique dès le prochain prélèvement.\n\nCordialement,\nL'équipe Gaz de Bordeaux",exemples:[]},
+    {id:"OPTA-006",name:"Changer d'option tarifaire",description:"Détecter une demande de changement d'option tarifaire (passage Base ↔ Heures Pleines/Heures Creuses).\n\nCHAMPS LEXICAUX :\n- \"option tarifaire\", \"changer d'option\", \"passer en base\", \"passer en HP/HC\"\n- \"ne me convient pas\", \"pas adapté\", \"pas rentable\"\n- \"basculer\", \"repasser\"\n\nINTENTIONS À DÉTECTER :\n- Le client veut quitter l'option HP/HC pour l'option Base\n- Le client veut passer de l'option Base à HP/HC\n- Le client estime que son option actuelle n'est pas adaptée à sa consommation\n\nEXCEPTIONS (ne PAS matcher) :\n- Si le client veut seulement CONNAÎTRE ses horaires HP/HC → \"Information HP/HC\"\n- Si le client conteste une facture → \"Réclamation facture\"\n\nEXEMPLES POSITIFS :\n- \"Je souhaite passer en option base\"\n- \"Mes heures creuses ne sont pas rentables, je veux changer d'option\"",template:"Bonjour,\n\nMerci d'avoir pris le temps de nous écrire.\n\nVous souhaitez modifier votre option tarifaire. Cette demande nécessite l'intervention d'un conseiller, qui vérifiera avec vous l'option la plus adaptée à votre consommation.\n\nVotre demande a été transmise, vous serez recontacté sous 48h.\n\nCordialement,\nL'équipe Gaz de Bordeaux",exemples:[]}
+  ];
+
+  /* ---------- utilitaires ---------- */
+  function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  function toast(m){var t=$("toast");t.textContent=m;t.classList.remove("hidden");clearTimeout(t._h);t._h=setTimeout(function(){t.classList.add("hidden");},2600);}
+  function byId(id){return D.intentions.filter(function(x){return x.id===id;})[0]||null;}
+  function today(){return new Date().toISOString().slice(0,10);}
+  function setSave(state,msg){
+    var d=$("sdot");d.className="dot"+(state==="wait"?" wait":(state==="err"?" err":""));
+    $("stext").textContent=msg;
+  }
+
+  /* ---------- persistance ---------- */
+  function load(){
+    setSave("wait","Chargement du référentiel…");
+    return fetch("/.netlify/functions/automail-data",{cache:"no-store"})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        if(j&&Array.isArray(j.intentions)&&j.intentions.length){
+          D.intentions=j.intentions; D.version=j.version||0;
+          setSave("ok","Référentiel chargé — "+(j.updated_at?("dernière modification "+j.updated_at.slice(0,16).replace("T"," ")):"à jour"));
+        }else{
+          D.intentions=JSON.parse(JSON.stringify(DEFAULTS)); D.version=0;
+          setSave("ok","Référentiel initialisé avec les intentions de départ");
+          save(true);
+        }
+        renderAll();
+      })
+      .catch(function(){
+        D.intentions=JSON.parse(JSON.stringify(DEFAULTS));
+        setSave("err","Stockage indisponible — travail non enregistré (le site doit être déployé avec ses fonctions)");
+        renderAll();
+      });
+  }
+  function save(silent){
+    setSave("wait","Enregistrement…");
+    return fetch("/.netlify/functions/automail-data",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({intentions:D.intentions,version:D.version})
+    }).then(function(r){return r.json();}).then(function(j){
+      if(j&&j.ok){ D.version=j.version; setSave("ok","Enregistré — "+j.updated_at.slice(11,16)); if(!silent) toast("Enregistré"); }
+      else setSave("err","Échec de l'enregistrement");
+    }).catch(function(){ setSave("err","Échec de l'enregistrement"); });
+  }
+
+  /* ---------- appels IA ---------- */
+  function ai(payload){
+    return fetch("/.netlify/functions/automail-ai",{
+      method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)
+    }).then(function(r){return r.json().then(function(j){ if(!r.ok||j.error) throw new Error(j.error||("erreur "+r.status)); return j; });});
+  }
+  function slim(){ return D.intentions.map(function(i){return {id:i.id,name:i.name,description:i.description,exemples:i.exemples||[]};}); }
+
+  /* ---------- rendu intentions ---------- */
+  function renderStats(){
+    var nEx=D.intentions.reduce(function(s,i){return s+((i.exemples||[]).length);},0);
+    $("stats").innerHTML=
+      '<div class="st"><div class="l">Intentions</div><div class="v">'+D.intentions.length+'</div></div>'+
+      '<div class="st acc"><div class="l">Exemples validés</div><div class="v">'+nEx+'</div></div>'+
+      '<div class="st"><div class="l">Moyenne / intention</div><div class="v">'+(D.intentions.length?(nEx/D.intentions.length).toFixed(1).replace(".",","):"0")+'</div></div>'+
+      '<div class="st"><div class="l">Version</div><div class="v">'+(D.version||0)+'</div></div>';
+  }
+  function renderIntentions(){
+    var h=D.intentions.map(function(i){
+      var n=(i.exemples||[]).length;
+      return '<div class="icard">'+
+        '<div class="ihead"><div><div class="iname">'+esc(i.name)+'</div><div class="iid">'+esc(i.id)+'</div></div>'+
+        '<div class="iacts"><span class="badge b-ok">Actif</span>'+
+        '<span class="badge b-ex">'+n+' exemple'+(n>1?"s":"")+'</span>'+
+        '<button class="btn" data-test="'+i.id+'">Tester</button>'+
+        '<button class="btn g" data-edit="'+i.id+'">Modifier</button>'+
+        '<button class="btn g d" data-del="'+i.id+'">Supprimer</button></div></div>'+
+        '<div class="prev"><div class="pb"><div class="pl">Business description</div><div class="pc">'+esc(i.description)+'</div></div>'+
+        '<div class="pb"><div class="pl">Template de réponse</div><div class="pc">'+esc(i.template)+'</div></div></div>'+
+        '<div class="tpanel hidden" id="tp-'+i.id+'">'+
+          '<label class="fl">Email client à tester contre cette intention</label>'+
+          '<textarea id="ti-'+i.id+'" rows="5" placeholder="Collez un email client anonymisé…"></textarea>'+
+          '<div style="margin-top:10px;display:flex;gap:8px"><button class="btn a" data-run="'+i.id+'">Lancer le test</button>'+
+          '<button class="btn g" data-test="'+i.id+'">Fermer</button></div>'+
+          '<div id="tr-'+i.id+'"></div>'+
+        '</div></div>';
+    }).join("");
+    $("ilist").innerHTML=h||'<p class="empty">Aucune intention. Créez la première.</p>';
+  }
+  function renderBase(){
+    var h=D.intentions.map(function(i){
+      var ex=i.exemples||[];
+      return '<div class="icard"><div class="ihead"><div><div class="iname">'+esc(i.name)+'</div>'+
+        '<div class="iid">'+esc(i.id)+' · '+ex.length+' exemple'+(ex.length>1?"s":"")+'</div></div></div>'+
+        (ex.length? '<div class="tw"><table class="t"><thead><tr><th>Email</th><th style="width:90px">Ajouté le</th><th style="width:60px"></th></tr></thead><tbody>'+
+          ex.map(function(e,k){return '<tr><td class="em">'+esc(String(e.texte||e).slice(0,300))+'</td><td class="iid">'+esc(e.date||"")+'</td>'+
+            '<td><button class="btn g d" data-rmex="'+i.id+'|'+k+'">✕</button></td></tr>';}).join("")+
+          '</tbody></table></div>'
+        : '<p class="empty">Aucun exemple pour l\'instant.</p>')+'</div>';
+    }).join("");
+    $("blist").innerHTML=h;
+  }
+  function renderAll(){ renderStats(); renderIntentions(); renderBase(); }
+
+  /* ---------- bloc d'actions après un test ---------- */
+  var actSeq=0;
+  function actionsBlock(email,detectedId){
+    var uid="a"+(++actSeq);
+    var opts=D.intentions.filter(function(i){return i.id!==detectedId;})
+      .map(function(i){return '<option value="'+i.id+'">'+esc(i.name)+'</option>';}).join("");
+    var h='<div class="acts" data-uid="'+uid+'"><div class="at">Que faire de ce résultat ?</div>';
+    if(detectedId){
+      h+='<label class="opt"><input type="radio" name="v-'+uid+'" value="ok" checked><span><b>Le résultat est correct</b></span></label>'+
+         '<div class="sub" id="s-ok-'+uid+'"><label class="opt"><input type="checkbox" id="c-add-'+uid+'" checked>'+
+         '<span>Ajouter cet email aux exemples validés de « '+esc((byId(detectedId)||{}).name||detectedId)+' »</span></label></div>';
+    }
+    h+='<label class="opt"><input type="radio" name="v-'+uid+'" value="ko"'+(detectedId?"":" checked")+'>'+
+       '<span><b>'+(detectedId?"Le résultat est incorrect":"Indiquer l'intention attendue")+'</b></span></label>'+
+       '<div class="sub'+(detectedId?" hidden":"")+'" id="s-ko-'+uid+'">'+
+         '<label class="fl" style="margin-top:6px">Intention qui aurait dû être détectée</label>'+
+         '<select id="sel-'+uid+'">'+opts+'</select>'+
+         '<label class="opt" style="margin-top:8px"><input type="checkbox" id="c-add2-'+uid+'" checked>'+
+         '<span>Ajouter cet email aux exemples de l\'intention sélectionnée</span></label>'+
+         (detectedId?'<label class="opt"><input type="checkbox" id="c-ref-'+uid+'">'+
+         '<span>Faire évoluer les business descriptions <span style="color:var(--slate);font-size:.85em">(ajout d\'une exception ici, renfort là-bas — proposition à valider)</span></span></label>':'')+
+       '</div>'+
+       '<div style="margin-top:12px"><button class="btn p" data-apply="'+uid+'">Appliquer</button></div></div>';
+    // mémorise le contexte
+    CTX[uid]={email:email,detected:detectedId};
+    return h;
+  }
+  var CTX={};
+
+  document.addEventListener("change",function(e){
+    var r=e.target;
+    if(r.type==="radio"&&/^v-a\d+$/.test(r.name||"")){
+      var uid=r.name.slice(2);
+      var so=$("s-ok-"+uid), sk=$("s-ko-"+uid);
+      if(so) so.classList.toggle("hidden",r.value!=="ok");
+      if(sk) sk.classList.toggle("hidden",r.value!=="ko");
+    }
+  });
+
+  document.addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b) return;
+
+    // ouvrir/fermer panneau de test
+    var t=b.getAttribute("data-test");
+    if(t){ var p=$("tp-"+t); if(p) p.classList.toggle("hidden"); return; }
+
+    // lancer test unitaire
+    var r=b.getAttribute("data-run");
+    if(r){ runOne(r,b); return; }
+
+    // édition
+    var ed=b.getAttribute("data-edit"); if(ed){ openEdit(ed); return; }
+    var dl=b.getAttribute("data-del");
+    if(dl){ if(confirm("Supprimer cette intention et ses exemples ?")){ D.intentions=D.intentions.filter(function(x){return x.id!==dl;}); save(); renderAll(); } return; }
+
+    // suppression d'exemple
+    var rm=b.getAttribute("data-rmex");
+    if(rm){ var pr=rm.split("|"); var it=byId(pr[0]); if(it){ it.exemples.splice(+pr[1],1); save(); renderAll(); } return; }
+
+    // appliquer les actions
+    var ap=b.getAttribute("data-apply");
+    if(ap){ applyActions(ap,b); return; }
+  });
+
+  /* ---------- test unitaire (par intention) ---------- */
+  function runOne(id,btn){
+    var it=byId(id); if(!it) return;
+    var email=($("ti-"+id).value||"").trim();
+    var out=$("tr-"+id);
+    if(!email){ out.innerHTML='<div class="notice err">Saisissez un email à tester.</div>'; return; }
+    btn.disabled=true; btn.textContent="Analyse…";
+    out.innerHTML='<p class="empty">Analyse en cours…</p>';
+    ai({action:"match_one",email:email,intention:{id:it.id,name:it.name,description:it.description,exemples:it.exemples}})
+      .then(function(j){
+        var ok=!!j.match;
+        out.innerHTML='<div class="res '+(ok?"ok":"ko")+'"><div class="rt">'+(ok?"✓ MATCH":"✗ NO MATCH")+
+          ' <span style="font-weight:400;font-size:.85em;color:var(--slate)">confiance '+(j.confiance!=null?j.confiance+" %":"—")+'</span></div>'+
+          '<div class="rj">'+esc(j.justification||"")+'</div></div>'+
+          actionsBlock(email, ok?id:null);
+      })
+      .catch(function(err){ out.innerHTML='<div class="notice err">Analyse impossible : '+esc(err.message)+'</div>'; })
+      .then(function(){ btn.disabled=false; btn.textContent="Lancer le test"; });
+  }
+
+  /* ---------- recette globale ---------- */
+  $("b-gtest").addEventListener("click",function(){
+    var raw=($("g-email").value||"").trim();
+    if(!raw){ $("gmsg").innerHTML='<div class="notice err">Saisissez au moins un email.</div>'; return; }
+    var emails=raw.split(/\n-{3,}\n/).map(function(s){return s.trim();}).filter(Boolean);
+    $("gmsg").innerHTML=""; $("gres").innerHTML="";
+    runBatch(emails,null,$("gprog"),$("gfill"),$("gstat"),$("gres"));
+  });
+
+  function runBatch(emails,expected,prog,fill,stat,out){
+    prog.hidden=false; out.innerHTML="";
+    var results=[],i=0;
+    function next(){
+      if(i>=emails.length){
+        prog.hidden=true; renderBatch(results,out,!!expected); return;
+      }
+      fill.style.width=Math.round(i/emails.length*100)+"%";
+      stat.textContent="Analyse "+(i+1)+"/"+emails.length+"…";
+      ai({action:"match_all",email:emails[i],intentions:slim()})
+        .then(function(j){ results.push({email:emails[i],r:j,att:expected?expected[i]:null}); })
+        .catch(function(e){ results.push({email:emails[i],err:e.message,att:expected?expected[i]:null}); })
+        .then(function(){ i++; next(); });
+    }
+    next();
+  }
+
+  function renderBatch(results,out,withExpected){
+    var nMatch=results.filter(function(x){return x.r&&x.r.intention_id;}).length;
+    var nGood=withExpected?results.filter(function(x){
+      if(!x.att) return false; var f=x.r&&x.r.intention_id?((byId(x.r.intention_id)||{}).name||x.r.intention_id):null;
+      return f&&(f===x.att||x.r.intention_id===x.att);
+    }).length:0;
+    var h='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:16px">'+
+      '<b>'+results.length+' email'+(results.length>1?"s":"")+' analysé'+(results.length>1?"s":"")+'</b>'+
+      '<span class="badge b-ok">'+nMatch+' match</span>'+
+      (withExpected?'<span class="badge b-ex">'+nGood+' conformes à l\'attendu</span>':'')+'</div>';
+    h+='<div class="tw"><table class="t"><thead><tr><th>Email</th><th>Intention détectée</th><th style="width:70px">Conf.</th>'+
+       (withExpected?'<th>Attendu</th><th style="width:60px">OK</th>':'')+'<th style="width:90px"></th></tr></thead><tbody>';
+    results.forEach(function(x,k){
+      var name=x.r&&x.r.intention_id?((byId(x.r.intention_id)||{}).name||x.r.intention_id):null;
+      var okv=withExpected&&x.att?((name===x.att||(x.r&&x.r.intention_id===x.att))?'<span class="vd y">✓</span>':'<span class="vd n">✗</span>'):"";
+      h+='<tr><td class="em">'+esc(x.email.slice(0,220))+(x.email.length>220?"…":"")+'</td>'+
+         '<td>'+(x.err?'<span class="vd n">erreur</span>':(name?esc(name):'<span class="vd n">aucun match</span>'))+
+         (x.r&&x.r.justification?'<div style="font-size:.78rem;color:var(--slate);margin-top:3px">'+esc(x.r.justification)+'</div>':'')+'</td>'+
+         '<td>'+(x.r&&x.r.confiance!=null?x.r.confiance+" %":"—")+'</td>'+
+         (withExpected?'<td>'+esc(x.att||"—")+'</td><td>'+okv+'</td>':'')+
+         '<td><button class="btn g" data-open="'+k+'">Traiter</button></td></tr>'+
+         '<tr id="row-act-'+k+'" style="display:none"><td colspan="'+(withExpected?6:4)+'" id="row-cell-'+k+'"></td></tr>';
+    });
+    h+='</tbody></table></div>';
+    out.innerHTML=h;
+    BATCH=results;
+    out.querySelectorAll("[data-open]").forEach(function(btn){
+      btn.addEventListener("click",function(){
+        var k=+btn.getAttribute("data-open"); var tr=$("row-act-"+k);
+        if(tr.style.display==="none"){
+          $("row-cell-"+k).innerHTML=actionsBlock(BATCH[k].email, BATCH[k].r?BATCH[k].r.intention_id:null);
+          tr.style.display=""; btn.textContent="Fermer";
+        } else { tr.style.display="none"; btn.textContent="Traiter"; }
+      });
+    });
+  }
+  var BATCH=[];
+
+  /* ---------- application des actions ---------- */
+  function applyActions(uid,btn){
+    var c=CTX[uid]; if(!c) return;
+    var mode=document.querySelector('input[name="v-'+uid+'"]:checked');
+    mode=mode?mode.value:"ok";
+
+    if(mode==="ok"){
+      var add=$("c-add-"+uid);
+      if(add&&add.checked&&c.detected){
+        var it=byId(c.detected);
+        if(it){ it.exemples=it.exemples||[]; it.exemples.push({texte:c.email,date:today(),source:"recette"});
+          save(); renderAll(); toast("Exemple ajouté à « "+it.name+" »"); }
+      } else toast("Aucune action appliquée");
+      return;
+    }
+
+    // mode incorrect
+    var sel=$("sel-"+uid); var rightId=sel?sel.value:null;
+    var right=byId(rightId);
+    if(!right){ toast("Sélectionnez l'intention attendue"); return; }
+
+    var add2=$("c-add2-"+uid), ref=$("c-ref-"+uid);
+    if(add2&&add2.checked){
+      right.exemples=right.exemples||[];
+      right.exemples.push({texte:c.email,date:today(),source:"correction"});
+      save(); renderAll(); toast("Exemple ajouté à « "+right.name+" »");
+    }
+    if(ref&&ref.checked&&c.detected){
+      var wrong=byId(c.detected); if(!wrong) return;
+      btn.disabled=true; btn.textContent="Analyse des prompts…";
+      ai({action:"refine",email:c.email,
+          wrong:{id:wrong.id,name:wrong.name,description:wrong.description},
+          right:{id:right.id,name:right.name,description:right.description}})
+        .then(function(j){
+          pendingRefine={wrongId:wrong.id,rightId:right.id,dw:j.description_incorrecte,dr:j.description_correcte};
+          $("ref-sum").textContent=j.resume||"";
+          $("ref-l1").textContent="« "+wrong.name+" » — exception ajoutée";
+          $("ref-d1").textContent=j.description_incorrecte||"";
+          $("ref-l2").textContent="« "+right.name+" » — détection renforcée";
+          $("ref-d2").textContent=j.description_correcte||"";
+          $("ref").classList.remove("hidden");
+        })
+        .catch(function(e){ toast("Affinage impossible : "+e.message); })
+        .then(function(){ btn.disabled=false; btn.textContent="Appliquer"; });
+    }
+  }
+
+  $("ref-a").addEventListener("click",function(){
+    if(!pendingRefine) return;
+    var w=byId(pendingRefine.wrongId), r=byId(pendingRefine.rightId);
+    if(w&&pendingRefine.dw) w.description=pendingRefine.dw;
+    if(r&&pendingRefine.dr) r.description=pendingRefine.dr;
+    pendingRefine=null; $("ref").classList.add("hidden");
+    save(); renderAll(); toast("Business descriptions mises à jour");
+  });
+  $("ref-c").addEventListener("click",function(){ pendingRefine=null; $("ref").classList.add("hidden"); });
+  $("ref-x").addEventListener("click",function(){ pendingRefine=null; $("ref").classList.add("hidden"); });
+
+  /* ---------- édition d'intention ---------- */
+  var editing=null;
+  function openEdit(id){
+    var it=id?byId(id):null; editing=id||null;
+    $("mod-t").textContent=it?"Modifier l'intention":"Nouvelle intention";
+    $("f-name").value=it?it.name:""; $("f-desc").value=it?it.description:""; $("f-tpl").value=it?it.template:"";
+    $("mod").classList.remove("hidden");
+  }
+  $("b-new").addEventListener("click",function(){ openEdit(null); });
+  $("mod-x").addEventListener("click",function(){ $("mod").classList.add("hidden"); });
+  $("mod-c").addEventListener("click",function(){ $("mod").classList.add("hidden"); });
+  $("mod-s").addEventListener("click",function(){
+    var n=$("f-name").value.trim(), d=$("f-desc").value.trim(), t=$("f-tpl").value.trim();
+    if(!n||!d){ alert("Le nom et la business description sont obligatoires."); return; }
+    if(editing){ var it=byId(editing); it.name=n; it.description=d; it.template=t; }
+    else{
+      var code=n.toUpperCase().replace(/[^A-Z]/g,"").slice(0,4)||"INTE";
+      D.intentions.push({id:code+"-"+String(D.intentions.length+1).padStart(3,"0"),name:n,description:d,template:t,exemples:[]});
+    }
+    $("mod").classList.add("hidden"); save(); renderAll();
+  });
+
+  /* ---------- onglets ---------- */
+  [["int","p-int"],["rec","p-rec"],["base","p-base"],["io","p-io"]].forEach(function(p){
+    $("t-"+p[0]).addEventListener("click",function(){
+      ["int","rec","base","io"].forEach(function(k){ $("t-"+k).classList.remove("on"); });
+      document.querySelectorAll(".pane").forEach(function(x){ x.classList.remove("on"); });
+      $("t-"+p[0]).classList.add("on"); $(p[1]).classList.add("on");
+    });
+  });
+
+  /* ---------- modèle Excel ---------- */
+  $("b-tpl").addEventListener("click", async function(){
+    var wb=new ExcelJS.Workbook();
+    var ws=wb.addWorksheet("Emails à tester");
+    ws.addRow(["Email client (anonymisé)","Intention attendue (facultatif)"]);
+    ws.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; });
+    ws.addRow(["Bonjour, je voudrais connaître mes horaires heures creuses. Merci.","Information HP/HC"]);
+    ws.addRow(["Bonjour, je n'arrive plus à me connecter à mon espace client, mot de passe refusé.","Problème de connexion à mon espace client"]);
+    ws.addRow(["Mes heures creuses ne servent à rien chez moi, je veux repasser en option base.","Changer d'option tarifaire"]);
+    ws.addRow(["Bonjour, comment fonctionne le parrainage ? Cordialement.",""]);
+    ws.getColumn(1).width=90; ws.getColumn(2).width=42;
+    ws.getColumn(1).alignment={wrapText:true,vertical:"top"};
+    ws.views=[{state:"frozen",ySplit:1}];
+
+    var ws2=wb.addWorksheet("Intentions disponibles");
+    ws2.addRow(["Nom exact de l'intention","Identifiant"]);
+    ws2.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; });
+    D.intentions.forEach(function(i){ ws2.addRow([i.name,i.id]); });
+    ws2.getColumn(1).width=48; ws2.getColumn(2).width=16;
+
+    var buf=await wb.xlsx.writeBuffer();
+    dl(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),"modele-emails-test.xlsx");
+  });
+
+  function dl(blob,name){ var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); }
+
+  /* ---------- import de fichier ---------- */
+  var drop=$("drop"), fi=$("file");
+  drop.addEventListener("click",function(){ fi.click(); });
+  drop.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fi.click(); } });
+  ["dragenter","dragover"].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add("over"); }); });
+  ["dragleave","drop"].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove("over"); }); });
+  drop.addEventListener("drop",function(e){ var f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) readFile(f); });
+  fi.addEventListener("change",function(e){ var f=e.target.files[0]; if(f) readFile(f); fi.value=""; });
+
+  async function readFile(f){
+    $("bmsg").innerHTML=""; $("bres").innerHTML="";
+    var emails=[],att=[];
+    try{
+      if(/\.csv$/i.test(f.name)){
+        var txt=await f.text();
+        txt.replace(/^\uFEFF/,"").split(/\r?\n/).forEach(function(line,idx){
+          if(!line.trim())return;
+          var cells=line.split(/[;,](?=(?:[^"]*"[^"]*")*[^"]*$)/).map(function(c){return c.replace(/^"|"$/g,"").trim();});
+          if(idx===0&&/email/i.test(cells[0]))return;
+          if(cells[0]&&cells[0].length>5){ emails.push(cells[0]); att.push(cells[1]||null); }
+        });
+      } else {
+        var wb=new ExcelJS.Workbook(); await wb.xlsx.load(await f.arrayBuffer());
+        var ws=wb.worksheets[0];
+        for(var r=1;r<=ws.actualRowCount;r++){
+          var row=ws.getRow(r);
+          var a=row.getCell(1).value, b=row.getCell(2).value;
+          var ta=(a&&typeof a==="object"&&a.text)?a.text:a;
+          if(ta==null)continue; ta=String(ta).trim();
+          if(r===1&&/email/i.test(ta))continue;
+          if(ta.length>5){ emails.push(ta); att.push(b?String((b.text||b)).trim():null); }
+        }
+      }
+    }catch(e){ $("bmsg").innerHTML='<div class="notice err">Lecture impossible : '+esc(e.message)+'</div>'; return; }
+
+    if(!emails.length){ $("bmsg").innerHTML='<div class="notice err">Aucun email trouvé. Vérifiez que les emails sont en colonne A.</div>'; return; }
+    var hasAtt=att.some(Boolean);
+    runBatch(emails,hasAtt?att:null,$("bprog"),$("bfill"),$("bstat"),$("bres"));
+  }
+
+  /* ---------- exports ---------- */
+  $("b-expj").addEventListener("click",function(){
+    dl(new Blob([JSON.stringify({intentions:D.intentions,version:D.version},null,2)],{type:"application/json"}),"referentiel-intentions.json");
+  });
+  $("b-expx").addEventListener("click", async function(){
+    var wb=new ExcelJS.Workbook();
+    var ws=wb.addWorksheet("Intentions");
+    ws.addRow(["Identifiant","Nom","Business description","Template de réponse","Nb exemples"]);
+    ws.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; });
+    D.intentions.forEach(function(i){ ws.addRow([i.id,i.name,i.description,i.template,(i.exemples||[]).length]); });
+    [14,34,70,60,12].forEach(function(w,k){ ws.getColumn(k+1).width=w; ws.getColumn(k+1).alignment={wrapText:true,vertical:"top"}; });
+    ws.views=[{state:"frozen",ySplit:1}];
+    var ws2=wb.addWorksheet("Exemples validés");
+    ws2.addRow(["Intention","Email exemple","Ajouté le","Origine"]);
+    ws2.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; });
+    D.intentions.forEach(function(i){ (i.exemples||[]).forEach(function(e){ ws2.addRow([i.name,e.texte||e,e.date||"",e.source||""]); }); });
+    [34,90,14,14].forEach(function(w,k){ ws2.getColumn(k+1).width=w; ws2.getColumn(k+1).alignment={wrapText:true,vertical:"top"}; });
+    var buf=await wb.xlsx.writeBuffer();
+    dl(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),"referentiel-intentions.xlsx");
+  });
+
+  /* ---------- init ---------- */
+  load();
+  try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"auto-mail"})}).catch(function(){});}catch(e){}
+})();
+</script>
+</body>
+</html>

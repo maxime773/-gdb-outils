@@ -37,6 +37,6 @@ window.ATELIER = {
     "excel-formatter.html",
     "excel-remplacement.html",
     "pdf-dataviz.html",
-    "automail-data"
+    "auto-mail.html"
   ]
 };

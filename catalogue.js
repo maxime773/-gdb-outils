@@ -32,10 +32,14 @@ window.ATELIER = {
 
   tools: [
     "auto-mail.html",
+    "analyse-hc-hp.html",
+    "compte-client.html",
+    "facture-energie.html",
+    "gestion-contact.html",
     "pdf-splitter.html",
     "pdf-fusion.html",
+    "pdf-dataviz.html",
     "excel-formatter.html",
-    "excel-remplacement.html",
-    "pdf-dataviz.html"
+    "excel-remplacement.html"
   ]
 };

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <!-- OUTIL
      titre: Analyse du compte client
-     description: Traduit l'export comptable GdB NRJ en synthèse métier : solde, rapprochement paiements-factures, alertes et explication prête pour le client.
+     description: Traduit l'export comptable GdB NRJ en synthèse métier : solde, rapprochement paiements-factures, alertes — et rédige la réponse email au client à partir de sa demande.
      categorie: DATA
-     ia: non
+     ia: oui
 -->
 <html lang="fr">
 <head>
@@ -68,6 +68,34 @@
   .copy.done{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
   .exp{margin-top:16px;display:inline-flex;align-items:center;gap:9px;background:var(--ok);color:#fff;font-weight:600;font-size:.92rem;padding:11px 16px;border-radius:var(--radius);border:none;cursor:pointer}
   .disc{margin-top:14px;font-size:.8rem;color:var(--slate);border-top:1px dashed var(--line-2);padding-top:10px}
+
+  /* --- demande du client (saisie) --- */
+  .dem{margin-top:18px}
+  .dem label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);margin-bottom:7px}
+  .dem label .opt{text-transform:none;letter-spacing:0;font-weight:400}
+  .dem textarea{width:100%;padding:12px 14px;border:1px solid var(--line-2);border-radius:var(--radius);font-family:inherit;font-size:.92rem;line-height:1.55;color:var(--ink);background:#fff;resize:vertical;min-height:112px}
+  .dem textarea:focus{outline:none;border-color:var(--signal)}
+  .dem .hint{margin-top:8px;font-size:.8rem;color:var(--slate);line-height:1.55}
+  .inline-link{background:transparent;border:none;padding:0;font:inherit;font-size:inherit;color:var(--steel);text-decoration:underline;cursor:pointer}
+  .payload{margin-top:10px;background:var(--paper-2);border:1px solid var(--line-2);border-radius:var(--radius);padding:12px 14px;font-family:var(--mono);font-size:11px;line-height:1.6;color:#2A3B4C;white-space:pre-wrap;max-height:260px;overflow:auto}
+
+  /* --- réponse au client --- */
+  .rep{background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:0;margin-top:16px;overflow:hidden}
+  .rep .obj{background:var(--paper-2);border-bottom:1px solid var(--line-2);padding:12px 20px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .rep .obj .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);flex:none}
+  .rep .obj .v{font-weight:700;color:var(--steel);font-size:.95rem}
+  .rep .corps{padding:18px 20px;font-size:.94rem;line-height:1.7;color:#1B1B1B;white-space:pre-wrap}
+  .rep .foot{border-top:1px solid var(--line);padding:12px 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;background:var(--paper)}
+  .rep .foot .copy{margin-top:0}
+  .pending{display:flex;align-items:center;gap:11px;padding:18px 20px;font-size:.9rem;color:var(--slate)}
+  .spin{width:15px;height:15px;border:2px solid var(--line-2);border-top-color:var(--signal);border-radius:50%;animation:sp .8s linear infinite;flex:none}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .ask{background:var(--paper-2);border-left:3px solid var(--signal);border-radius:0 var(--radius) var(--radius) 0;padding:12px 16px;margin-top:16px;font-size:.88rem;line-height:1.6;color:#2A3B4C;white-space:pre-wrap}
+  .ask .k{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);margin-bottom:6px}
+  .chk{margin-top:16px;border:1px solid var(--line-2);border-left:4px solid var(--signal);border-radius:var(--radius);padding:13px 16px;background:#fff}
+  .chk h5{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--signal);margin-bottom:8px}
+  .chk ul{margin:0;padding-left:18px}
+  .chk li{font-size:.87rem;line-height:1.6;color:#333;margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -81,7 +109,7 @@
   </section>
 
   <div class="panel">
-    <div class="panel-strip"><span class="k">TRAITEMENT</span> local · aucun envoi réseau · calculs déterministes</div>
+    <div class="panel-strip"><span class="k">TRAITEMENT</span> chiffres calculés en local · rédaction de la réponse par IA (seulement si une demande est saisie)</div>
     <div class="panel-body">
 
       <div class="drop" id="drop" tabindex="0" role="button" aria-label="Déposer l'export compte client">
@@ -89,6 +117,17 @@
         <div class="drop-title">Glissez l'export compte client</div>
         <div class="drop-hint">.xlsx ou .csv — export GdB NRJ</div>
         <input type="file" id="file" accept=".xlsx,.csv" hidden />
+      </div>
+
+      <div class="dem">
+        <label for="demande">Demande du client <span class="opt">— optionnel</span></label>
+        <textarea id="demande" spellcheck="true" placeholder="Collez ici l'email ou la demande du client.&#10;&#10;Exemple : « Bonjour, je ne comprends pas pourquoi vous me réclamez encore de l'argent, j'ai payé ma facture en février. Pouvez-vous m'expliquer ? »"></textarea>
+        <p class="hint">
+          Rempli, ce champ déclenche en plus la rédaction d'une <strong>réponse email prête à relire</strong>, qui répond à la demande en s'appuyant uniquement sur les chiffres calculés.
+          Cette rédaction passe par un modèle d'IA : les identifiants du compte (n° client, contrat, PCE/PDL) ne sont jamais transmis, et la demande est caviardée automatiquement (nom, email, téléphone, références chiffrées).
+          <button type="button" class="inline-link" id="see-payload">Voir exactement ce qui est transmis</button>
+        </p>
+        <div class="payload" id="payload" hidden></div>
       </div>
 
       <button class="run" id="run" disabled>Analyser le compte</button>
@@ -104,7 +143,7 @@
     </div>
   </div>
 
-  <div class="colophon"><span>Gaz de Bordeaux — DATA · 02</span><span>ExcelJS — embarqué</span></div>
+  <div class="colophon"><span>Gaz de Bordeaux — DATA · 02</span><span>ExcelJS embarqué · rédaction IA via fonction serveur</span></div>
 </div>
 
 <script>
@@ -113,7 +152,9 @@
   var $=function(id){return document.getElementById(id);};
   var dropEl=$("drop"), fileEl=$("file"), runEl=$("run"), progEl=$("progress"),
       fillEl=$("fill"), statusEl=$("pstatus"), msgEl=$("messages"), resEl=$("results");
+  var demEl=$("demande");
   var selectedFile=null, busy=false, A=null;
+  var lastDemande="";   // demande caviardée réellement transmise (vide = pas de rédaction IA)
 
   // ---- codes opération connus (dictionnaire métier) ----
   var CODES={
@@ -148,6 +189,10 @@
     dropEl.classList.remove("has");
     dropEl.innerHTML='<div class="drop-icon">📊</div><div class="drop-title">Glissez l\'export compte client</div><div class="drop-hint">.xlsx ou .csv — export GdB NRJ</div>';
   }
+  // libellé du bouton : indique si une réponse client sera rédigée
+  function runLabel(){ return demEl.value.trim() ? "Analyser et rédiger la réponse" : "Analyser le compte"; }
+  demEl.addEventListener("input",function(){ if(!busy) runEl.textContent=runLabel(); });
+
   dropEl.addEventListener("click",function(){ if(!busy) fileEl.click(); });
   dropEl.addEventListener("keydown",function(e){ if((e.key==="Enter"||e.key===" ")&&!busy){ e.preventDefault(); fileEl.click(); } });
   fileEl.addEventListener("change",function(e){ setFile(e.target.files[0]); });
@@ -385,6 +430,156 @@
     return t;
   }
 
+  // ---------- caviardage de la demande client ----------
+  // Retire les éléments directement identifiants avant tout envoi réseau.
+  // Volontairement prudent : mieux vaut caviarder un peu trop que pas assez.
+  function caviarder(t){
+    var s=String(t||"");
+    s=s.replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g,"[email]");
+    s=s.replace(/\b(?:FR|fr)[ ]?\d{2}(?:[ ]?[A-Za-z0-9]){10,25}/g,"[IBAN]");
+    s=s.replace(/(?:\+33|0033)\s?[1-9](?:[\s.-]?\d{2}){4}\b/g,"[telephone]");
+    s=s.replace(/\b0[1-9](?:[\s.-]?\d{2}){4}\b/g,"[telephone]");
+    s=s.replace(/\b\d[\d\s]{6,}\d\b/g,"[reference]");            // n° client, PCE, PDL, contrat…
+    s=s.replace(/\b(?:M\.|Mr|Mme|Madame|Monsieur|Mlle)\s+[A-ZÀ-Ý][\wÀ-ÿ'-]+(?:\s+[A-ZÀ-Ý][\wÀ-ÿ'-]+)?/g,"[nom]");
+    // signature : la ligne qui suit une formule de politesse
+    s=s.replace(/((?:cordialement|bien à vous|bien cordialement|salutations|respectueusement)\s*,?\s*\n+)([^\n]{2,60})/gi,
+      function(_,a){ return a+"[nom]"; });
+    return s.trim();
+  }
+
+  // Ce qui part réellement vers la fonction serveur : des chiffres et une demande caviardée.
+  // Aucun identifiant de compte (client, contrat, PCE, PDL) n'est inclus.
+  function buildPayload(An, demande){
+    var s=An?An.solde:0;
+    var modes={};
+    if(An) An.actifs.filter(function(m){return m.credit>0&&m.mode;}).forEach(function(m){ modes[m.mode]=(modes[m.mode]||0)+1; });
+    var modePrinc=Object.keys(modes).sort(function(a,b){return modes[b]-modes[a];})[0];
+    var r2=function(v){ return Math.round(v*100)/100; };
+    return {
+      demande: demande,
+      compte: An ? {
+        energie: An.id.energie||"",
+        sens: Math.abs(s)<0.005 ? "a jour" : (s>0?"debiteur":"crediteur"),
+        solde: r2(Math.abs(s)),
+        totalFacture: r2(An.totDeb),
+        totalRegle: r2(An.totCre),
+        nbFactures: An.factures.length,
+        modePrincipal: modePrinc?modeLib({mode:modePrinc}):"",
+        derniereOperation: An.derniere?An.derniere.dateStr:"",
+        factures: An.factures.slice(0,10).map(function(f){
+          return { piece:f.f.piece, date:f.f.dateStr, montant:r2(f.f.debit),
+                   regle:r2(f.paye), reste:f.reste>0.005?r2(f.reste):0, statut:f.statut,
+                   reglements:f.regle.map(function(m){
+                     return { type:typeOp(m), montant:r2(m.credit), date:m.dateStr, mode:modeLib(m) };
+                   }) };
+        }),
+        reglementsNonRattaches: An.nonLettres.map(function(m){
+          return { type:typeOp(m), montant:r2(m.credit), date:m.dateStr };
+        }),
+        alertes: An.alertes.map(function(a){
+          return { niveau:a.niv==="haut"?"eleve":"moyen", titre:a.t,
+                   texte:String(a.p).replace(/<[^>]*>/g,"") };
+        })
+      } : null
+    };
+  }
+
+  // Aperçu « ce qui est transmis », consultable avant de lancer l'analyse.
+  $("see-payload").addEventListener("click",function(){
+    var box=$("payload");
+    if(!box.hidden){ box.hidden=true; this.textContent="Voir exactement ce qui est transmis"; return; }
+    var dem=caviarder(demEl.value);
+    var p=buildPayload(A, dem);
+    var apercu;
+    if(!A){
+      apercu="— Demande, après caviardage automatique —\n"+(dem||"(champ vide)")+
+        "\n\n— Chiffres du compte —\n(analysez d'abord un export : les chiffres calculés apparaîtront ici,\n sans aucun identifiant de compte)";
+    } else {
+      apercu="— Demande, après caviardage automatique —\n"+(dem||"(champ vide)")+
+        "\n\n— Chiffres du compte, tels qu'envoyés —\n"+JSON.stringify(p.compte,null,2);
+    }
+    box.textContent=apercu; box.hidden=false;
+    this.textContent="Masquer";
+  });
+
+  // ---------- rédaction de la réponse (appel IA) ----------
+  function renderReponse(d){
+    var box=$("rep-body"); if(!box) return;
+    var objet=String(d.objet||"Votre compte Gaz de Bordeaux");
+    var corps=String(d.email||"");
+    if(!corps){ renderFallback("réponse vide"); return; }
+    var h='<div class="rep">'+
+      '<div class="obj"><span class="k">Objet</span><span class="v" id="rep-objet">'+esc(objet)+'</span></div>'+
+      '<div class="corps" id="rep-corps">'+esc(corps)+'</div>'+
+      '<div class="foot">'+
+        '<button class="copy" id="cp-all">Copier l\'email (objet + corps)</button>'+
+        '<button class="copy" data-t="rep-corps">Copier le corps seul</button>'+
+      '</div>'+
+    '</div>';
+    var pv=(d.points_a_verifier||[]).filter(Boolean);
+    var hp=(d.hors_perimetre||[]).filter(Boolean);
+    if(pv.length) h+='<div class="chk"><h5>À vérifier avant envoi</h5><ul>'+
+      pv.map(function(x){return '<li>'+esc(x)+'</li>';}).join("")+'</ul></div>';
+    if(hp.length) h+='<div class="chk"><h5>Non répondu — hors de ce que montre le compte</h5><ul>'+
+      hp.map(function(x){return '<li>'+esc(x)+'</li>';}).join("")+'</ul></div>';
+    h+='<div class="ask"><span class="k">Demande du client, telle que transmise</span>'+esc(lastDemande)+'</div>';
+    h+='<p class="disc">Réponse rédigée par un modèle d\'IA à partir des seuls chiffres calculés par l\'outil. '+
+       'Elle doit être relue : le conseiller reste responsable de ce qui est envoyé au client.</p>';
+    box.innerHTML=h;
+    bindCopies(box);
+    var all=$("cp-all");
+    if(all) all.addEventListener("click",function(){
+      navigator.clipboard.writeText("Objet : "+objet+"\n\n"+corps).catch(function(){});
+      all.textContent="Copié !"; all.classList.add("done");
+      setTimeout(function(){ all.textContent="Copier l'email (objet + corps)"; all.classList.remove("done"); },1600);
+    });
+  }
+
+  function renderFallback(raison){
+    var box=$("rep-body"); if(!box) return;
+    box.innerHTML=
+      '<div class="alert high"><div class="at">⚠ Rédaction automatique indisponible</div>'+
+      '<p>'+esc(String(raison))+'. Le texte générique ci-dessous reste disponible : il est construit uniquement '+
+      'à partir des montants calculés, mais il ne répond pas spécifiquement à la demande du client.</p></div>'+
+      '<div class="rep"><div class="obj"><span class="k">Objet</span><span class="v">Le point sur votre compte</span></div>'+
+      '<div class="corps" id="rep-corps">'+esc(texteEmail(A))+'</div>'+
+      '<div class="foot"><button class="copy" data-t="rep-corps">Copier le corps</button></div></div>'+
+      '<div class="ask"><span class="k">Demande du client</span>'+esc(lastDemande)+'</div>';
+    bindCopies(box);
+  }
+
+  async function redigerReponse(){
+    var box=$("rep-body"); if(!box) return;
+    box.innerHTML='<div class="rep"><div class="pending"><span class="spin"></span>'+
+      'Rédaction de la réponse au client…</div></div>';
+    try{
+      var r=await fetch("/.netlify/functions/compte-client-ai",{
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(buildPayload(A,lastDemande))
+      });
+      if(r.status===404) throw new Error("la fonction serveur compte-client-ai n'est pas déployée");
+      var d=null;
+      try{ d=await r.json(); }catch(e){ throw new Error("réponse illisible du serveur (code "+r.status+")"); }
+      if(!r.ok || (d&&d.error)) throw new Error((d&&d.error)||("erreur serveur "+r.status));
+      renderReponse(d);
+    }catch(err){
+      renderFallback(err.message||String(err));
+    }
+  }
+
+  function bindCopies(scope){
+    Array.prototype.forEach.call((scope||document).querySelectorAll(".copy[data-t]"),function(b){
+      if(b.dataset.bound) return; b.dataset.bound="1";
+      b.addEventListener("click",function(){
+        var el=$(b.getAttribute("data-t")); if(!el) return;
+        navigator.clipboard.writeText(el.textContent).catch(function(){});
+        var old=b.textContent;
+        b.textContent="Copié !"; b.classList.add("done");
+        setTimeout(function(){ b.textContent=old; b.classList.remove("done"); },1600);
+      });
+    });
+  }
+
   // ---------- rendu ----------
   function render(){
     var s=A.solde;
@@ -407,15 +602,27 @@
 
     html+=synthese(A);
 
+    // L'onglet « Réponse au client » n'existe que si une demande a été saisie ;
+    // dans ce cas il est ouvert par défaut, c'est le livrable attendu par le conseiller.
+    var rep = !!lastDemande;
+    var keys = rep ? ["rep","rappr","chrono","alertes","client"] : ["rappr","chrono","alertes","client"];
+    var first = keys[0];
+    function tabCls(k){ return "tab"+(k===first?" on":""); }
+    function paneCls(k){ return "pane"+(k===first?" on":""); }
+
     html+='<div class="tabs">'+
-      '<button class="tab on" id="t-rappr">Rapprochement</button>'+
-      '<button class="tab" id="t-chrono">Chronologie</button>'+
-      '<button class="tab" id="t-alertes">Alertes ('+A.alertes.length+')</button>'+
-      '<button class="tab" id="t-client">Explication client</button>'+
+      (rep?'<button class="'+tabCls("rep")+'" id="t-rep">✉ Réponse au client</button>':'')+
+      '<button class="'+tabCls("rappr")+'" id="t-rappr">Rapprochement</button>'+
+      '<button class="'+tabCls("chrono")+'" id="t-chrono">Chronologie</button>'+
+      '<button class="'+tabCls("alertes")+'" id="t-alertes">Alertes ('+A.alertes.length+')</button>'+
+      '<button class="'+tabCls("client")+'" id="t-client">Explication client</button>'+
     '</div>';
 
+    // --- réponse au client (remplie après l'appel IA) ---
+    if(rep) html+='<div class="'+paneCls("rep")+'" id="p-rep"><div id="rep-body"></div></div>';
+
     // --- rapprochement ---
-    html+='<div class="pane on" id="p-rappr"><div class="tblwrap"><table class="cc"><thead><tr>'+
+    html+='<div class="'+paneCls("rappr")+'" id="p-rappr"><div class="tblwrap"><table class="cc"><thead><tr>'+
       '<th>Facture</th><th>Date</th><th class="r">Montant</th><th>Réglée par</th><th class="r">Reste dû</th><th>Statut</th>'+
       '</tr></thead><tbody>';
     if(!A.factures.length) html+='<tr><td colspan="6" style="color:var(--slate)">Aucune facture identifiée.</td></tr>';
@@ -470,42 +677,41 @@
     resEl.innerHTML=html;
 
     // onglets
-    [["rappr"],["chrono"],["alertes"],["client"]].forEach(function(k){
-      $("t-"+k[0]).addEventListener("click",function(){
-        ["rappr","chrono","alertes","client"].forEach(function(x){
-          $("t-"+x).classList.toggle("on",x===k[0]);
-          $("p-"+x).classList.toggle("on",x===k[0]);
+    keys.forEach(function(k){
+      var btn=$("t-"+k); if(!btn) return;
+      btn.addEventListener("click",function(){
+        keys.forEach(function(x){
+          var b2=$("t-"+x), p2=$("p-"+x);
+          if(b2) b2.classList.toggle("on",x===k);
+          if(p2) p2.classList.toggle("on",x===k);
         });
       });
     });
-    Array.prototype.forEach.call(document.querySelectorAll(".copy"),function(b){
-      b.addEventListener("click",function(){
-        var t=$(b.getAttribute("data-t")).textContent;
-        navigator.clipboard.writeText(t).catch(function(){});
-        b.textContent="Copié !"; b.classList.add("done");
-        setTimeout(function(){ b.textContent="Copier"; b.classList.remove("done"); },1600);
-      });
-    });
+    bindCopies(resEl);
     $("exp").addEventListener("click", exportXlsx);
   }
 
   runEl.addEventListener("click", async function(){
     if(!selectedFile||busy) return;
     busy=true; runEl.disabled=true; runEl.textContent="Analyse…"; clearMessages(); resEl.innerHTML="";
+    $("payload").hidden=true; $("see-payload").textContent="Voir exactement ce qui est transmis";
+    lastDemande=caviarder(demEl.value);
     try{
       setProgress(25,"Lecture de l'export…");
       var ws=await loadSheet(selectedFile);
       setProgress(60,"Reconstitution du compte…");
       A=analyse(ws);
-      setProgress(100,"Terminé — "+A.actifs.length+" mouvement(s) analysé(s).");
+      setProgress(100,"Terminé — "+A.actifs.length+" mouvement(s) analysé(s)."+
+        (lastDemande?" Rédaction de la réponse en cours…":""));
       render();
+      if(lastDemande) redigerReponse();
       if(!A.coherent) showMessage("warn","Le solde recalculé ne correspond pas au total attendu — à vérifier manuellement.");
       try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"compte-client"})}).catch(function(){});}catch(e){}
     }catch(err){
       progEl.hidden=true;
       showMessage("err","Analyse impossible : "+esc(err.message||String(err))+".");
     }finally{
-      busy=false; runEl.textContent="Analyser le compte"; runEl.disabled=!selectedFile;
+      busy=false; runEl.textContent=runLabel(); runEl.disabled=!selectedFile;
     }
   });
 

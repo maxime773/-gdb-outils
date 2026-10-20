@@ -120,7 +120,7 @@ const TOOL = {
         description: "Les demandes du client auxquelles l'email ne répond pas, et pourquoi en quelques mots. Vide si l'email répond à tout."
       }
     },
-    required: ["objet", "email", "calcul_pose", "points_a_verifier", "hors_perimetre"]
+    required: ["objet", "email", "calcul_pose", "validation_requise", "points_a_verifier", "hors_perimetre"]
   }
 };
 
@@ -242,6 +242,7 @@ exports.handler = async (event) => {
       objet: String(out.objet || "Le point sur votre compte"),
       email: email,
       calcul_pose: String(out.calcul_pose || ""),
+      validation_requise: !!out.validation_requise,
       points_a_verifier: Array.isArray(out.points_a_verifier) ? out.points_a_verifier.slice(0, 6).map(String) : [],
       hors_perimetre: Array.isArray(out.hors_perimetre) ? out.hors_perimetre.slice(0, 6).map(String) : []
     }) };

@@ -108,6 +108,13 @@
   .chk h5{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--signal);margin-bottom:8px}
   .chk ul{margin:0;padding-left:18px}
   .chk li{font-size:.87rem;line-height:1.6;color:#333;margin-bottom:4px}
+  .ctrl{margin-top:14px;display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line-2);border-radius:var(--radius);padding:13px 16px;background:#fff}
+  .ctrl.ok{border-left:4px solid var(--ok);background:var(--ok-soft)}
+  .ctrl.ko{border-left:4px solid #B3261E;background:#FBE9E7}
+  .ctrl .ci{font-size:1.05rem;flex:none;line-height:1.3}
+  .ctrl .cl{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate)}
+  .ctrl .cv{font-size:.95rem;font-weight:600;color:var(--ink);margin:3px 0 5px}
+  .ctrl .cm{font-size:.85rem;color:#333}
   .diag{margin-top:10px;font-size:.82rem}
   .diag summary{cursor:pointer;color:var(--slate);font-family:var(--mono);font-size:11px}
   .diag pre{margin-top:8px;background:var(--paper-2);border:1px solid var(--line-2);border-radius:var(--radius);padding:10px 12px;font-family:var(--mono);font-size:10.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;max-height:240px;overflow:auto}
@@ -184,6 +191,53 @@
     "973":{lib:"Frais de rejet", type:"frais"}
   };
   var MODES={"PR":"prélèvement automatique","AC":"paiement en ligne / CB","CH":"chèque","VI":"virement","TP":"TIP"};
+
+  // Ce que chaque nature d'opération veut dire, en français courant.
+  // sens : "+" augmente ce que le client doit, "-" le diminue.
+  var EXPL={
+    "Facture":{sens:"+",c:"une consommation facturée : c'est une somme due à Gaz de Bordeaux",
+      d:"Chaque facture ajoute son montant à ce que le client doit."},
+    "Avoir":{sens:"-",c:"une somme rendue au client, qui vient en déduction de ce qu'il doit",
+      d:"Un avoir corrige une facture émise à tort ou trop élevée : il se déduit du compte."},
+    "Prélèvement":{sens:"-",c:"un prélèvement automatique encaissé : il réduit ce qui reste dû",
+      d:"La somme a bien été encaissée sur le compte bancaire du client."},
+    "Paiement CB":{sens:"-",c:"un paiement par carte : il réduit ce qui reste dû",
+      d:"Paiement effectué par le client, en ligne ou par téléphone."},
+    "Remboursement par chèque":{sens:"+",c:"une somme versée au client par chèque",
+      d:"Le compte avait un excédent : il a été rendu au client, le solde du compte remonte donc d'autant."},
+    "Rejet de prélèvement":{sens:"+",c:"un prélèvement qui n'a pas abouti : la somme redevient due",
+      d:"Le prélèvement a été refusé par la banque. Le règlement est annulé, la somme repasse à la charge du client."},
+    "Frais de rejet":{sens:"+",c:"les frais facturés à la suite d'un prélèvement refusé",
+      d:"Frais appliqués lorsqu'un prélèvement est rejeté par la banque."}
+  };
+  // "Paiement CB" + 2 -> "paiements CB" ; "Frais de rejet" reste invariable
+  function plural(lib,n){
+    var w=String(lib||"").split(" ");
+    if(!w.length) return "";
+    w[0]=w[0].charAt(0).toLowerCase()+w[0].slice(1);
+    if(n>1 && !/[sx]$/i.test(w[0])) w[0]+="s";
+    return w.join(" ");
+  }
+  function explNature(lib, impact){
+    if(EXPL[lib]) return EXPL[lib];
+    return { sens: impact>=0?"+":"-",
+      c: impact>=0 ? "une somme ajoutée au compte" : "une somme venue en déduction",
+      d: "Opération « "+lib+" » telle qu'elle figure dans l'export comptable." };
+  }
+
+  // **gras** -> <strong>, après échappement HTML
+  function md(s){ return esc(s).replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>"); }
+  function unmd(s){ return String(s==null?"":s).replace(/\*\*/g,""); }
+
+  // tous les montants d'un texte, au format français (1 234,56 / 1234,56 / 168.15)
+  function montants(s){
+    var out=[], re=/\d[\d\s  ]*(?:[.,]\d{1,2})?/g, m;
+    while((m=re.exec(String(s||"")))){
+      var v=parseFloat(m[0].replace(/[\s  ]/g,"").replace(",","."));
+      if(!isNaN(v)) out.push(v);
+    }
+    return out;
+  }
 
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
   function fmtSize(b){ if(b<1024)return b+" o"; if(b<1048576)return (b/1024).toFixed(0)+" Ko"; return (b/1048576).toFixed(1)+" Mo"; }
@@ -453,13 +507,34 @@
           p:"La facture "+x.f.piece+" du "+x.f.dateStr+" est nettement supérieure à la moyenne du compte ("+eur(moy)+"). Vérifier s'il s'agit d'une régularisation annuelle."});
       });
     }
+    // --- décomposition du solde par nature d'opération ---
+    // Le chemin complet entre 0 € et le solde. La somme des impacts doit retomber
+    // exactement sur le solde : c'est le contrôle qui rend l'explication opposable.
+    var nat={};
+    actifs.forEach(function(m){
+      var lab=typeOp(m);
+      var g=nat[lab]||(nat[lab]={lib:lab,n:0,debit:0,credit:0});
+      g.n++; g.debit+=m.debit; g.credit+=m.credit;
+    });
+    var decomp=Object.keys(nat).map(function(k){
+      var g=nat[k];
+      return { lib:g.lib, n:g.n,
+               impact:Math.round((g.debit-g.credit)*100)/100,
+               debit:Math.round(g.debit*100)/100,
+               credit:Math.round(g.credit*100)/100 };
+    }).filter(function(d){ return Math.abs(d.impact)>=0.005 || d.n>0; });
+    // ce qui augmente la dette d'abord, ce qui la réduit ensuite
+    decomp.sort(function(a,b){ return b.impact-a.impact; });
+    var sommeImpacts=Math.round(decomp.reduce(function(s,d){return s+d.impact;},0)*100)/100;
+
     // contrôle de cohérence
     var recalc=Math.round((totDeb-totCre)*100)/100;
-    var coherent=Math.abs(recalc-solde)<0.005;
+    var coherent=Math.abs(recalc-solde)<0.005 && Math.abs(sommeImpacts-solde)<0.005;
 
     return {id:id, mv:mv, actifs:actifs, annules:mv.filter(function(m){return m.annule;}).length,
             totDeb:totDeb, totCre:totCre, solde:solde, factures:factures,
             nonLettres:nonLettres, alertes:alertes, coherent:coherent,
+            decomp:decomp, sommeImpacts:sommeImpacts,
             sources:srcs, doublons:doublons, conflits:conflits,
             derniere: actifs.slice().sort(function(a,b){return (b.date||0)-(a.date||0);})[0]};
   }
@@ -562,6 +637,15 @@
         nbFactures: An.factures.length,
         modePrincipal: modePrinc?modeLib({mode:modePrinc}):"",
         derniereOperation: An.derniere?An.derniere.dateStr:"",
+        // le chemin de 0 € au solde : c'est ce qui permet au modèle d'expliquer
+        // chaque chiffre sans jamais en calculer un lui-même
+        decomposition: (An.decomp||[]).map(function(d){
+          var e=explNature(d.lib,d.impact);
+          return { nature:d.lib, nb:d.n, effet:r2(d.impact),
+                   sens:d.impact>=0?"augmente ce que le client doit":"diminue ce que le client doit",
+                   explication:e.c };
+        }),
+        ecrituresAnnulees: An.annules||0,
         factures: An.factures.slice(0,10).map(function(f){
           return { piece:f.f.piece, date:f.f.dateStr, montant:r2(f.f.debit),
                    regle:r2(f.paye), reste:f.reste>0.005?r2(f.reste):0, statut:f.statut,
@@ -606,12 +690,31 @@
     if(!corps){ renderFallback("réponse vide"); return; }
     var h='<div class="rep">'+
       '<div class="obj"><span class="k">Objet</span><span class="v" id="rep-objet">'+esc(objet)+'</span></div>'+
-      '<div class="corps" id="rep-corps">'+esc(corps)+'</div>'+
+      '<div class="corps" id="rep-corps">'+md(corps)+'</div>'+
       '<div class="foot">'+
-        '<button class="copy" id="cp-all">Copier l\'email (objet + corps)</button>'+
-        '<button class="copy" data-t="rep-corps">Copier le corps seul</button>'+
+        '<button class="copy" id="cp-all">Copier l\'email (avec le gras)</button>'+
+        '<button class="copy" data-t="rep-corps">Copier en texte simple</button>'+
       '</div>'+
     '</div>';
+    // Contrôle : le calcul annoncé au client retombe-t-il sur le solde calculé ?
+    // C'est le garde-fou qui empêche un email juste dans la forme et faux dans le chiffre.
+    var calc=String(d.calcul_pose||"").trim();
+    if(calc || Math.abs(A.solde)>=0.005){
+      var ref=Math.abs(A.solde);
+      var dansCalc=montants(calc).some(function(v){ return Math.abs(v-ref)<0.015; });
+      var dansMail=montants(corps).some(function(v){ return Math.abs(v-ref)<0.015; });
+      var ok=(calc?dansCalc:true) && dansMail;
+      h+='<div class="ctrl'+(ok?" ok":" ko")+'">'+
+         '<span class="ci">'+(ok?"✓":"⚠")+'</span><div>'+
+         (calc?'<div class="cl">Calcul annoncé au client</div><div class="cv">'+md(calc)+'</div>':'')+
+         '<div class="cm">'+(ok
+            ? 'Cohérent avec le solde calculé par l\'outil : <b>'+eur(ref)+'</b>.'
+            : 'Le solde calculé par l\'outil (<b>'+eur(ref)+'</b>) n\'apparaît pas '+
+              (!dansMail?'dans le corps de l\'email':'dans le calcul posé')+
+              '. À corriger avant envoi.')+'</div>'+
+         '</div></div>';
+    }
+
     var pv=(d.points_a_verifier||[]).filter(Boolean);
     var hp=(d.hors_perimetre||[]).filter(Boolean);
     if(pv.length) h+='<div class="chk"><h5>À vérifier avant envoi</h5><ul>'+
@@ -625,9 +728,12 @@
     bindCopies(box);
     var all=$("cp-all");
     if(all) all.addEventListener("click",function(){
-      navigator.clipboard.writeText("Objet : "+objet+"\n\n"+corps).catch(function(){});
+      // copie enrichie : le gras survit au collage dans Outlook / Gmail
+      var htmlMail='<p><b>Objet :</b> '+esc(objet)+'</p><div>'+
+        md(corps).replace(/\n/g,"<br>")+'</div>';
+      copyRich(htmlMail, "Objet : "+objet+"\n\n"+unmd(corps));
       all.textContent="Copié !"; all.classList.add("done");
-      setTimeout(function(){ all.textContent="Copier l'email (objet + corps)"; all.classList.remove("done"); },1600);
+      setTimeout(function(){ all.textContent="Copier l'email (avec le gras)"; all.classList.remove("done"); },1600);
     });
   }
 
@@ -672,6 +778,19 @@
     }
   }
 
+  // copie avec mise en forme (text/html) + repli texte simple
+  function copyRich(html, plain){
+    try{
+      if(window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+        return navigator.clipboard.write([new ClipboardItem({
+          "text/html": new Blob([html],{type:"text/html"}),
+          "text/plain": new Blob([plain],{type:"text/plain"})
+        })]).catch(function(){ return navigator.clipboard.writeText(plain).catch(function(){}); });
+      }
+    }catch(e){}
+    try{ return navigator.clipboard.writeText(plain).catch(function(){}); }catch(e){}
+  }
+
   function bindCopies(scope){
     Array.prototype.forEach.call((scope||document).querySelectorAll(".copy[data-t]"),function(b){
       if(b.dataset.bound) return; b.dataset.bound="1";
@@ -683,6 +802,111 @@
         setTimeout(function(){ b.textContent=old; b.classList.remove("done"); },1600);
       });
     });
+  }
+
+  // ---------- d'où vient le solde ----------
+  function signe(v){ return (v>=0?"+ ":"− ")+eur(Math.abs(v)); }
+
+  function origine(A){
+    var s=A.solde, h="";
+    var sens = Math.abs(s)<0.005 ? "nul" : (s>0?"du":"faveur");
+
+    // 1) le chemin, étape par étape
+    h+='<div class="tblwrap"><table class="cc"><thead><tr>'+
+       '<th>Étape</th><th>Ce que c\'est</th><th class="r">Nb</th><th class="r">Effet sur le compte</th><th class="r">Compte après</th>'+
+       '</tr></thead><tbody>';
+    h+='<tr><td><b>Point de départ</b></td><td style="color:var(--slate);font-size:.84rem">Compte à zéro, avant toute opération de la période</td>'+
+       '<td class="r">—</td><td class="r">—</td><td class="r mono"><b>'+eur(0)+'</b></td></tr>';
+    var cum=0;
+    A.decomp.forEach(function(d){
+      var e=explNature(d.lib,d.impact);
+      cum=Math.round((cum+d.impact)*100)/100;
+      h+='<tr><td><b>'+esc(d.lib)+'</b></td>'+
+         '<td style="color:var(--slate);font-size:.84rem">'+esc(e.c)+'</td>'+
+         '<td class="r mono">'+d.n+'</td>'+
+         '<td class="r '+(d.impact>=0?"deb":"cre")+'"><b>'+signe(d.impact)+'</b></td>'+
+         '<td class="r mono">'+eur(cum)+'</td></tr>';
+    });
+    h+='<tr style="background:var(--paper-2)"><td><b>Solde final</b></td>'+
+       '<td style="font-size:.84rem">'+(sens==="nul"?"Rien ne reste dû":(sens==="du"?"Somme restant due par le client":"Somme en faveur du client"))+'</td>'+
+       '<td class="r">—</td><td class="r">—</td>'+
+       '<td class="r mono"><b style="font-size:1.05rem">'+eur(Math.abs(s))+'</b></td></tr>';
+    h+='</tbody></table></div>';
+
+    // contrôle affiché : la somme des étapes retombe-t-elle sur le solde ?
+    h+='<p class="disc" style="border-top:none;padding-top:8px">'+
+       (A.coherent
+         ? '✓ Contrôle : la somme des étapes ('+eur(A.sommeImpacts)+') correspond exactement au solde. Le chemin ci-dessus est complet.'
+         : '⚠ Contrôle : la somme des étapes ('+eur(A.sommeImpacts)+') ne retombe pas sur le solde ('+eur(A.solde)+'). À vérifier avant d\'expliquer quoi que ce soit au client.')+
+       '</p>';
+
+    // 2) l'explication en clair, chiffres en gras
+    var lignes=[];
+    var fact=A.decomp.filter(function(d){return d.impact>0;});
+    var regl=A.decomp.filter(function(d){return d.impact<0;});
+    var totPlus=Math.round(fact.reduce(function(x,d){return x+d.impact;},0)*100)/100;
+    var totMoins=Math.round(regl.reduce(function(x,d){return x+Math.abs(d.impact);},0)*100)/100;
+
+    lignes.push("Sur la période consultée, le compte a été augmenté de **"+eur(totPlus)+"** au total : "+
+      fact.map(function(d){ return "**"+eur(d.impact)+"** au titre de **"+d.n+"** "+plural(d.lib,d.n); }).join(", ")+".");
+    if(regl.length){
+      lignes.push("En face, **"+eur(totMoins)+"** sont venus en déduction : "+
+        regl.map(function(d){ return "**"+eur(Math.abs(d.impact))+"** de **"+d.n+"** "+plural(d.lib,d.n); }).join(", ")+".");
+    } else {
+      lignes.push("Aucun règlement ni avoir n'est venu en déduction sur la période.");
+    }
+    if(Math.abs(s)<0.005){
+      lignes.push("La différence est nulle : **tout ce qui a été facturé a été réglé**, il ne reste rien à payer.");
+    } else if(s>0){
+      lignes.push("La différence entre les deux donne **"+eur(totPlus)+"** − **"+eur(totMoins)+"** = **"+eur(s)+"**, "+
+        "qui est la somme restant due à ce jour.");
+    } else {
+      lignes.push("Les règlements dépassent ce qui a été facturé de **"+eur(Math.abs(s))+"** : "+
+        "cette somme est en faveur du client, elle viendra en déduction de la prochaine facture ou sera remboursée.");
+    }
+    if(A.annules) lignes.push("**"+A.annules+" écriture"+(A.annules>1?"s ont":" a")+"** été annulée"+(A.annules>1?"s":"")+
+      " puis contre-passée"+(A.annules>1?"s":"")+" : elles s'annulent deux à deux et n'entrent pas dans le calcul.");
+    if(A.doublons) lignes.push("**"+A.doublons+" ligne"+(A.doublons>1?"s":"")+"** présente"+(A.doublons>1?"s":"")+
+      " en double dans les fichiers déposés "+(A.doublons>1?"ont":"a")+" été comptée"+(A.doublons>1?"s":"")+" une seule fois.");
+
+    h+='<div class="client" style="margin-top:18px"><h4>L\'explication, en clair</h4>'+
+       '<div class="txt" id="txt-clair">'+lignes.map(function(l){return md(l);}).join("\n\n")+'</div>'+
+       '<button class="copy" data-t="txt-clair">Copier</button></div>';
+
+    // 3) chaque nature de ligne, expliquée
+    h+='<div class="chk" style="border-left-color:var(--steel)"><h5 style="color:var(--steel)">Chaque chiffre, expliqué</h5><ul>';
+    A.decomp.forEach(function(d){
+      var e=explNature(d.lib,d.impact);
+      h+='<li><strong>'+esc(d.lib)+' — '+signe(d.impact)+'</strong> ('+d.n+' opération'+(d.n>1?"s":"")+') : '+esc(e.d)+'</li>';
+    });
+    h+='</ul></div>';
+
+    // 4) ce qui compose précisément le restant dû
+    var dues=A.factures.filter(function(f){ return f.statut!=="soldee"; });
+    if(s>0.005 && dues.length){
+      h+='<div class="tblwrap" style="margin-top:18px"><table class="cc"><thead><tr>'+
+         '<th>Ce qui reste dû, facture par facture</th><th>Date</th><th class="r">Montant</th>'+
+         '<th class="r">Déjà réglé</th><th class="r">Reste</th></tr></thead><tbody>';
+      dues.forEach(function(f){
+        h+='<tr><td class="mono">'+esc(f.f.piece)+'</td><td class="mono">'+esc(f.f.dateStr)+'</td>'+
+           '<td class="r">'+eur(f.f.debit)+'</td>'+
+           '<td class="r cre">'+(f.paye>0.005?eur(f.paye):"—")+'</td>'+
+           '<td class="r deb"><b>'+eur(f.reste)+'</b></td></tr>';
+      });
+      var sommeRestes=Math.round(dues.reduce(function(x,f){return x+f.reste;},0)*100)/100;
+      h+='<tr style="background:var(--paper-2)"><td colspan="4"><b>Total des factures non soldées</b></td>'+
+         '<td class="r"><b>'+eur(sommeRestes)+'</b></td></tr></tbody></table></div>';
+      if(Math.abs(sommeRestes-s)>=0.005){
+        h+='<div class="alert"><div class="at">🟠 Écart entre le solde et les factures non soldées</div>'+
+           '<p>Le solde du compte est de <b>'+eur(s)+'</b> alors que les factures non soldées totalisent <b>'+eur(sommeRestes)+'</b>, '+
+           'soit un écart de <b>'+eur(Math.abs(s-sommeRestes))+'</b>. Cet écart vient en général de règlements non rattachés à une facture, '+
+           'ou de frais hors facture. À élucider avant d\'annoncer un montant au client.</p></div>';
+      }
+    }
+
+    h+='<p class="disc">Tous les chiffres de cet onglet sont calculés par l\'outil à partir de l\'export, sans intervention d\'un modèle d\'IA. '+
+       'Ils sont reproductibles : la somme des étapes retombe sur le solde.</p>';
+    return h;
   }
 
   // ---------- rendu ----------
@@ -717,13 +941,15 @@
     // L'onglet « Réponse au client » n'existe que si une demande a été saisie ;
     // dans ce cas il est ouvert par défaut, c'est le livrable attendu par le conseiller.
     var rep = !!lastDemande;
-    var keys = rep ? ["rep","rappr","chrono","alertes","client"] : ["rappr","chrono","alertes","client"];
+    var keys = rep ? ["rep","origine","rappr","chrono","alertes","client"]
+                   : ["origine","rappr","chrono","alertes","client"];
     var first = keys[0];
     function tabCls(k){ return "tab"+(k===first?" on":""); }
     function paneCls(k){ return "pane"+(k===first?" on":""); }
 
     html+='<div class="tabs">'+
       (rep?'<button class="'+tabCls("rep")+'" id="t-rep">✉ Réponse au client</button>':'')+
+      '<button class="'+tabCls("origine")+'" id="t-origine">D\'où vient le solde</button>'+
       '<button class="'+tabCls("rappr")+'" id="t-rappr">Rapprochement</button>'+
       '<button class="'+tabCls("chrono")+'" id="t-chrono">Chronologie</button>'+
       '<button class="'+tabCls("alertes")+'" id="t-alertes">Alertes ('+A.alertes.length+')</button>'+
@@ -732,6 +958,9 @@
 
     // --- réponse au client (remplie après l'appel IA) ---
     if(rep) html+='<div class="'+paneCls("rep")+'" id="p-rep"><div id="rep-body"></div></div>';
+
+    // --- d'où vient le solde (100 % déterministe) ---
+    html+='<div class="'+paneCls("origine")+'" id="p-origine">'+origine(A)+'</div>';
 
     // --- rapprochement ---
     html+='<div class="'+paneCls("rappr")+'" id="p-rappr"><div class="tblwrap"><table class="cc"><thead><tr>'+

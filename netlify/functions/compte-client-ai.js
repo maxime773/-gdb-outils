@@ -7,8 +7,14 @@
 //
 // Rappel de nommage : une fonction qui appelle Claude -> fichier .js avec
 // exports.handler (une fonction de stockage getStore -> fichier .mjs).
+//
+// v2 — la réponse est demandée via un OUTIL (tool use) et non en JSON libre :
+// c'est l'API qui structure et valide la sortie, au lieu de nous demander de
+// parser du texte. C'est ce qui corrige l'erreur "le modèle n'a pas renvoyé
+// un email exploitable".
 
-const MODEL = "claude-sonnet-5";   // qualité rédactionnelle ; "claude-haiku-4-5-20251001" si vous voulez moins cher
+const MODEL = "claude-sonnet-5";   // qualité rédactionnelle
+// Alternatives si besoin : "claude-sonnet-5-5" (plus récent), "claude-haiku-5-5" (moins cher).
 
 const SYSTEM = [
   "Tu rédiges, pour un conseiller de Gaz de Bordeaux, la réponse email à envoyer à un client",
@@ -19,7 +25,7 @@ const SYSTEM = [
   "  statuts que tu écris doivent être repris EXACTEMENT des données fournies. Aucun autre chiffre.",
   "- Si la demande du client porte sur un point que les données ne montrent pas (échéancier à venir,",
   "  relevé de compteur, geste commercial, détail d'un poste de facture, date de prélèvement future…),",
-  "  tu ne réponds pas à ce point dans l'email : tu le listes dans \"hors_perimetre\".",
+  "  tu ne réponds pas à ce point dans l'email : tu le signales dans hors_perimetre.",
   "- Tu ne promets rien au nom de l'entreprise : pas de remboursement, pas de délai, pas de remise,",
   "  pas de geste commercial. Tu peux proposer au client d'être recontacté.",
   "- Si une alerte de niveau élevé existe (double facturation suspectée, rejet, recouvrement),",
@@ -27,25 +33,61 @@ const SYSTEM = [
   "  encore à vérifier : tu l'annonces comme une vérification en cours.",
   "",
   "STYLE",
-  "- Français, vouvoiement, phrases courtes, aucun jargon comptable : pas de \"lettrage\", \"débit\",",
-  "  \"crédit\", \"écriture\", \"pièce\". On dit \"facture\", \"règlement\", \"somme restant due\".",
+  "- Français, vouvoiement, phrases courtes, aucun jargon comptable : pas de « lettrage », « débit »,",
+  "  « crédit », « écriture », « pièce ». On dit facture, règlement, somme restant due.",
   "- Tu réponds d'abord à ce que le client demande, puis tu donnes les chiffres qui le justifient.",
   "- Si le client est mécontent, tu accuses réception de son ressenti en une phrase, sans t'excuser",
   "  de façon excessive et sans reconnaître une faute qui n'est pas établie.",
   "- Longueur : 120 à 250 mots. Montants au format français (1 234,56 €).",
-  "- Signature exacte, sur deux lignes : \"Cordialement,\" puis \"Votre conseiller Gaz de Bordeaux\".",
-  "- N'invente aucun nom de client et ne mets aucun nom propre : commence par \"Bonjour,\".",
+  "- Signature exacte, sur deux lignes : « Cordialement, » puis « Votre conseiller Gaz de Bordeaux ».",
+  "- N'invente aucun nom de client et ne mets aucun nom propre : commence par « Bonjour, ».",
   "",
-  "SORTIE",
-  "Réponds UNIQUEMENT avec un objet JSON valide, sans texte autour ni balise Markdown :",
-  '{"objet": string, "email": string, "points_a_verifier": string[], "hors_perimetre": string[]}',
-  "- objet : ligne d'objet de l'email, 4 à 10 mots, sans \"Re:\".",
-  "- email : le corps complet, sauts de ligne inclus (\\n).",
-  "- points_a_verifier : ce que le conseiller doit contrôler avant d'envoyer (incohérence,",
-  "  règlement non rattaché, hypothèse). Tableau vide si rien.",
-  "- hors_perimetre : les demandes du client auxquelles l'email ne répond pas, et pourquoi en",
-  "  quelques mots. Tableau vide si l'email répond à tout."
+  "Tu réponds en appelant l'outil rediger_reponse, et uniquement par cet appel."
 ].join("\n");
+
+const TOOL = {
+  name: "rediger_reponse",
+  description: "Transmet au conseiller la réponse email prête à relire, et ce qui reste à vérifier.",
+  input_schema: {
+    type: "object",
+    properties: {
+      objet: { type: "string", description: "Ligne d'objet de l'email, 4 à 10 mots, sans « Re: »." },
+      email: { type: "string", description: "Corps complet de l'email, sauts de ligne compris, signature incluse." },
+      points_a_verifier: {
+        type: "array", items: { type: "string" },
+        description: "Ce que le conseiller doit contrôler avant d'envoyer (incohérence, règlement non rattaché, hypothèse). Vide si rien."
+      },
+      hors_perimetre: {
+        type: "array", items: { type: "string" },
+        description: "Les demandes du client auxquelles l'email ne répond pas, et pourquoi en quelques mots. Vide si l'email répond à tout."
+      }
+    },
+    required: ["objet", "email", "points_a_verifier", "hors_perimetre"]
+  }
+};
+
+// Filet de sécurité : si jamais le modèle répond en texte plutôt qu'en appelant
+// l'outil, on tente une lecture tolérante (bloc { } isolé, sauts de ligne bruts
+// à l'intérieur des chaînes — la cause classique d'un JSON invalide).
+function lectureTolerante(txt) {
+  if (!txt) return null;
+  let s = txt.replace(/```json/gi, "").replace(/```/g, "").trim();
+  const a = s.indexOf("{"), b = s.lastIndexOf("}");
+  if (a < 0 || b <= a) return null;
+  s = s.slice(a, b + 1);
+  try { return JSON.parse(s); } catch (e) {}
+  // échappe les sauts de ligne réels situés à l'intérieur d'une chaîne
+  let out = "", dansChaine = false, echap = false;
+  for (const c of s) {
+    if (echap) { out += c; echap = false; continue; }
+    if (c === "\\") { out += c; echap = true; continue; }
+    if (c === '"') { dansChaine = !dansChaine; out += c; continue; }
+    if (dansChaine && (c === "\n" || c === "\r")) { out += "\\n"; continue; }
+    if (dansChaine && c === "\t") { out += "\\t"; continue; }
+    out += c;
+  }
+  try { return JSON.parse(out); } catch (e) { return null; }
+}
 
 exports.handler = async (event) => {
   const H = { "Content-Type": "application/json" };
@@ -68,7 +110,6 @@ exports.handler = async (event) => {
   } catch (e) {
     return { statusCode: 400, headers: H, body: JSON.stringify({ error: "corps de requête illisible" }) };
   }
-
   if (!demande) {
     return { statusCode: 400, headers: H, body: JSON.stringify({ error: "aucune demande client reçue" }) };
   }
@@ -76,21 +117,25 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: H, body: JSON.stringify({ error: "aucun chiffre de compte reçu" }) };
   }
 
+  const sensTxt =
+    compte.sens === "debiteur"  ? " (le client doit cette somme)" :
+    compte.sens === "crediteur" ? " (la somme est en faveur du client)" :
+                                  " (rien ne reste dû)";
+
   const userMsg =
     "DEMANDE DU CLIENT (texte caviardé — les identifiants ont été retirés)\n" +
     demande +
     "\n\nCHIFFRES DU COMPTE, calculés par l'outil (seule source de vérité chiffrée)\n" +
     JSON.stringify(compte, null, 2) +
-    "\n\nRédige la réponse email selon les règles du système." +
-    "\nRappel : sens du solde = \"" + (compte.sens || "?") + "\"" +
-    (compte.sens === "debiteur" ? " (le client doit cette somme)" :
-     compte.sens === "crediteur" ? " (la somme est en faveur du client)" :
-     " (rien ne reste dû)") + ".";
+    "\n\nRappel : sens du solde = \"" + (compte.sens || "?") + "\"" + sensTxt + "." +
+    "\n\nRédige la réponse email en appelant l'outil rediger_reponse.";
 
   const payload = {
     model: MODEL,
-    max_tokens: 1600,
+    max_tokens: 2500,
     system: SYSTEM,
+    tools: [TOOL],
+    tool_choice: { type: "tool", name: "rediger_reponse" },
     messages: [{ role: "user", content: userMsg }]
   };
 
@@ -104,28 +149,42 @@ exports.handler = async (event) => {
     if (!r.ok) {
       const detail = await r.text();
       return { statusCode: 502, headers: H, body: JSON.stringify({
-        error: "erreur de l'API Claude (" + r.status + ")", detail: detail.slice(0, 300) }) };
+        error: "erreur de l'API Claude (" + r.status + ")", detail: detail.slice(0, 500) }) };
     }
 
     const data = await r.json();
-    let out = "";
-    if (Array.isArray(data.content)) {
-      out = data.content.filter(b => b.type === "text").map(b => b.text).join("");
-    }
-    out = out.replace(/```json/gi, "").replace(/```/g, "").trim();
+    const blocs = Array.isArray(data.content) ? data.content : [];
+    const appel = blocs.find(b => b.type === "tool_use" && b.name === "rediger_reponse");
+    let out = appel ? appel.input : null;
 
-    let parsed;
-    try { parsed = JSON.parse(out); }
-    catch (e) {
+    if (!out) {
+      const texte = blocs.filter(b => b.type === "text").map(b => b.text).join("");
+      out = lectureTolerante(texte);
+      if (!out) {
+        const tronque = data.stop_reason === "max_tokens";
+        return { statusCode: 200, headers: H, body: JSON.stringify({
+          error: tronque
+            ? "la réponse du modèle a été coupée avant la fin (limite de longueur)"
+            : "le modèle n'a pas renvoyé un email exploitable",
+          stop_reason: data.stop_reason || "",
+          raw: (texte || JSON.stringify(blocs)).slice(0, 1200)
+        }) };
+      }
+    }
+
+    const email = String(out.email || "").trim();
+    if (!email) {
       return { statusCode: 200, headers: H, body: JSON.stringify({
-        error: "le modèle n'a pas renvoyé un email exploitable", raw: out.slice(0, 400) }) };
+        error: "le modèle a renvoyé un email vide",
+        stop_reason: data.stop_reason || "",
+        raw: JSON.stringify(out).slice(0, 1200) }) };
     }
 
     return { statusCode: 200, headers: H, body: JSON.stringify({
-      objet: String(parsed.objet || "Le point sur votre compte"),
-      email: String(parsed.email || ""),
-      points_a_verifier: Array.isArray(parsed.points_a_verifier) ? parsed.points_a_verifier.slice(0, 6).map(String) : [],
-      hors_perimetre: Array.isArray(parsed.hors_perimetre) ? parsed.hors_perimetre.slice(0, 6).map(String) : []
+      objet: String(out.objet || "Le point sur votre compte"),
+      email: email,
+      points_a_verifier: Array.isArray(out.points_a_verifier) ? out.points_a_verifier.slice(0, 6).map(String) : [],
+      hors_perimetre: Array.isArray(out.hors_perimetre) ? out.hors_perimetre.slice(0, 6).map(String) : []
     }) };
 
   } catch (err) {

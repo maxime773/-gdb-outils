@@ -130,14 +130,27 @@
     var CONFIG = {
       hourlyCost: 40, // € / heure (coût chargé) — modifiable aussi en direct sur la page
       tools: {
-        "pdf-splitter":       { label: "Découpeur de PDF",              minutes: 10 },
-        "pdf-fusion":         { label: "Fusionneur de PDF",             minutes: 8  },
-        "excel-formatter":    { label: "Mise en forme Excel",           minutes: 15 },
-        "excel-remplacement": { label: "Remplacement par correspondance", minutes: 20 },
-        "pdf-dataviz":        { label: "PDF vers visualisation",        minutes: 25 },
-        "gestion-contact":    { label: "Gestion de contact",           minutes: 5  }
+        "analyse-hc-hp":      { label: "Analyse HP/HC",                minutes: 12 },
+        "compte-client":      { label: "Analyse du compte client",     minutes: 15 },
+        "facture-energie":    { label: "Analyse facture énergie",      minutes: 12 },
+        "auto-mail":          { label: "Auto Mail — intentions",       minutes: 20 }
+
+        // ---- Outils masqués pour la présentation ----
+        // Pour les réafficher : ajouter une virgule après la ligne
+        // "auto-mail" ci-dessus, puis retirer les // voulus.
+        // ,
+        // "gestion-contact":    { label: "Gestion de contact",             minutes: 5  },
+        // "pdf-splitter":       { label: "Découpeur de PDF",               minutes: 10 },
+        // "pdf-fusion":         { label: "Fusionneur de PDF",              minutes: 8  },
+        // "pdf-dataviz":        { label: "PDF vers visualisation",         minutes: 25 },
+        // "excel-formatter":    { label: "Mise en forme Excel",            minutes: 15 },
+        // "excel-remplacement": { label: "Remplacement par correspondance", minutes: 20 }
       }
     };
+
+    // true = n'affiche QUE les outils listés ci-dessus, même si d'anciens
+    // compteurs d'usage existent encore pour des outils masqués.
+    var ONLY_CONFIGURED = true;
     // ======================================================================
 
     var stats = {};
@@ -166,7 +179,9 @@
       body.innerHTML = "";
 
       var ids = Object.keys(CONFIG.tools);
-      Object.keys(stats).forEach(function(id){ if(ids.indexOf(id) < 0) ids.push(id); });
+      if(!ONLY_CONFIGURED){
+        Object.keys(stats).forEach(function(id){ if(ids.indexOf(id) < 0) ids.push(id); });
+      }
       var sumUses=0, sumMonth=0, sumMin=0, sumEu=0;
       var chartLabels=[], chartData=[];
 
@@ -260,6 +275,9 @@
     function avg(sum,n){ return n>0 ? (Math.round((sum/n)*10)/10).toString().replace(".",",") : "—"; }
     function renderFeedback(fb){
       var ids = Object.keys(fb);
+      if(ONLY_CONFIGURED){
+        ids = ids.filter(function(id){ return !!CONFIG.tools[id]; });
+      }
       var kpis = document.getElementById("fb-kpis");
       var table = document.getElementById("fb-table");
       var hint = document.getElementById("fb-hint");

@@ -5,16 +5,15 @@
    à partir de l'en-tête <!-- OUTIL ... --> présent dans le fichier
    de l'outil. Vous n'avez donc pas à recopier titre / description.
 
-   POUR AJOUTER UN OUTIL (procédure complète : README-plateforme.md)
-     1. Déposez le fichier .html (avec son en-tête OUTIL) dans /outils
+   POUR AJOUTER UN OUTIL
+     1. Déposez le fichier .html (avec son en-tête OUTIL) à la racine
      2. Ajoutez SON NOM DE FICHIER dans la liste "tools" ci-dessous
-     3. Redéployez (glisser le zip/dossier sur Netlify)
+     3. Commit -> Netlify redéploie tout seul
 
-   Deux formes possibles dans "tools" :
-     • une chaîne  -> nom d'un fichier réel dans /outils (carte auto)
-         "renommeur-factures.html"
-     • un objet    -> un outil "à venir", sans fichier encore
-         { soon: true, category: "XLS", title: "...", description: "..." }
+   POUR MASQUER / RÉAFFICHER UN OUTIL
+     Un outil masqué reste dans le dépôt : il n'apparaît simplement
+     plus sur la page d'accueil. Pour le réafficher, retirez les //
+     devant sa ligne (et vérifiez les virgules).
    ============================================================ */
 
 window.ATELIER = {
@@ -31,15 +30,24 @@ window.ATELIER = {
   },
 
   tools: [
-    "auto-mail.html",
-    "analyse-hc-hp.html",
-    "compte-client.html",
-    "facture-energie.html",
-    "gestion-contact.html",
-    "pdf-splitter.html",
-    "pdf-fusion.html",
-    "pdf-dataviz.html",
-    "excel-formatter.html",
-    "excel-remplacement.html"
+
+    // ---- Présentation Direction générale : les 4 outils métier ----
+    "analyse-hc-hp.html",      // DATA · 01
+    "compte-client.html",      // DATA · 02
+    "facture-energie.html",    // DATA · 03
+    "auto-mail.html"           // DATA · 04
+
+    // ---- Outils masqués pour la présentation ----
+    // Les fichiers restent dans le dépôt, ils ne s'affichent plus.
+    // Pour les réafficher : ajouter une virgule après "auto-mail.html"
+    // ci-dessus, puis retirer les // des lignes voulues.
+    // ,
+    // "gestion-contact.html",
+    // "pdf-splitter.html",
+    // "pdf-fusion.html",
+    // "pdf-dataviz.html",
+    // "excel-formatter.html",
+    // "excel-remplacement.html"
+
   ]
 };

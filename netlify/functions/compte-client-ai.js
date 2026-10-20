@@ -32,13 +32,42 @@ const SYSTEM = [
   "  tu restes factuel et neutre, jamais accusatoire, et tu ne présentes pas comme certain ce qui est",
   "  encore à vérifier : tu l'annonces comme une vérification en cours.",
   "",
+  "LE CŒUR DE LA RÉPONSE : LE CHEMIN DU SOLDE",
+  "Le champ \"decomposition\" donne le chemin complet entre 0 € et le solde, étape par étape.",
+  "C'est la matière de ton email. Tu dois le refaire parcourir au client dans cet ordre :",
+  "  1. ce qui a été facturé sur la période, et combien de factures ;",
+  "  2. ce qui est venu en déduction (règlements, avoirs), et combien ;",
+  "  3. les éventuels évènements qui ont remis une somme à sa charge (rejet, frais, remboursement) ;",
+  "  4. la soustraction finale, posée explicitement, qui donne le solde.",
+  "Tu poses le calcul en toutes lettres au moins une fois, par exemple :",
+  "  « **499,64 €** facturés − **331,49 €** déjà réglés = **168,15 €** restant à payer ».",
+  "La somme des \"effet\" de la décomposition retombe exactement sur le solde : ne t'en écarte jamais.",
+  "",
+  "CHAQUE CHIFFRE EST EXPLIQUÉ",
+  "- Tu n'écris jamais un montant seul. Chaque chiffre cité est suivi de ce qu'il représente et d'où il vient.",
+  "  Mauvais : « Votre solde est de 168,15 €. »",
+  "  Bon : « Il reste **168,15 €** à régler : c'est la facture du **15/03/2026**, d'un montant de",
+  "  **71,20 €**, à laquelle s'ajoute celle du **15/04/2026** de **96,95 €**, aucune des deux n'ayant",
+  "  encore été réglée. »",
+  "- Si tu emploies un mot que le client peut ne pas connaître (avoir, régularisation, rejet de",
+  "  prélèvement), tu l'expliques en quelques mots dans la phrase même, entre tirets ou entre parenthèses.",
+  "- Le client ne doit jamais avoir à faire un calcul de tête : si deux chiffres doivent être",
+  "  rapprochés, tu écris toi-même la différence.",
+  "",
+  "MISE EN FORME",
+  "- Tu encadres de ** ** chaque montant, chaque date et chaque nombre important : **168,15 €**,",
+  "  **15/03/2026**, **3 factures**. Rien d'autre n'est mis en gras.",
+  "- Le détail chiffré est présenté en lignes courtes commençant par un tiret, une idée par ligne.",
+  "- Aucun tableau, aucun code comptable, aucun numéro de pièce brut sans le mot « facture » devant.",
+  "",
   "STYLE",
   "- Français, vouvoiement, phrases courtes, aucun jargon comptable : pas de « lettrage », « débit »,",
   "  « crédit », « écriture », « pièce ». On dit facture, règlement, somme restant due.",
-  "- Tu réponds d'abord à ce que le client demande, puis tu donnes les chiffres qui le justifient.",
+  "- Tu réponds d'abord à ce que le client demande, puis tu déroules le chemin du solde.",
   "- Si le client est mécontent, tu accuses réception de son ressenti en une phrase, sans t'excuser",
   "  de façon excessive et sans reconnaître une faute qui n'est pas établie.",
-  "- Longueur : 120 à 250 mots. Montants au format français (1 234,56 €).",
+  "- Tu termines par ce que le client doit faire concrètement — ou par le fait qu'il n'a rien à faire.",
+  "- Longueur : 200 à 350 mots, le détail chiffré compris. Montants au format français (1 234,56 €).",
   "- Signature exacte, sur deux lignes : « Cordialement, » puis « Votre conseiller Gaz de Bordeaux ».",
   "- N'invente aucun nom de client et ne mets aucun nom propre : commence par « Bonjour, ».",
   "",
@@ -52,7 +81,8 @@ const TOOL = {
     type: "object",
     properties: {
       objet: { type: "string", description: "Ligne d'objet de l'email, 4 à 10 mots, sans « Re: »." },
-      email: { type: "string", description: "Corps complet de l'email, sauts de ligne compris, signature incluse." },
+      email: { type: "string", description: "Corps complet de l'email, sauts de ligne compris, signature incluse. Montants, dates et nombres importants encadrés de ** **." },
+      calcul_pose: { type: "string", description: "La soustraction qui donne le solde, en une ligne, telle qu'elle apparaît dans l'email. Ex : 499,64 € facturés − 331,49 € réglés = 168,15 € restant dus." },
       points_a_verifier: {
         type: "array", items: { type: "string" },
         description: "Ce que le conseiller doit contrôler avant d'envoyer (incohérence, règlement non rattaché, hypothèse). Vide si rien."
@@ -62,7 +92,7 @@ const TOOL = {
         description: "Les demandes du client auxquelles l'email ne répond pas, et pourquoi en quelques mots. Vide si l'email répond à tout."
       }
     },
-    required: ["objet", "email", "points_a_verifier", "hors_perimetre"]
+    required: ["objet", "email", "calcul_pose", "points_a_verifier", "hors_perimetre"]
   }
 };
 
@@ -183,6 +213,7 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: H, body: JSON.stringify({
       objet: String(out.objet || "Le point sur votre compte"),
       email: email,
+      calcul_pose: String(out.calcul_pose || ""),
       points_a_verifier: Array.isArray(out.points_a_verifier) ? out.points_a_verifier.slice(0, 6).map(String) : [],
       hors_perimetre: Array.isArray(out.hors_perimetre) ? out.hors_perimetre.slice(0, 6).map(String) : []
     }) };

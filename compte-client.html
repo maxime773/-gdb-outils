@@ -186,14 +186,23 @@
   // ---- codes opération connus (dictionnaire métier) ----
   var CODES={
     "906":{lib:"Facture",       type:"facture"},
+    "E906":{lib:"Facture",      type:"facture"},
     "956":{lib:"Avoir",         type:"avoir"},
     "971":{lib:"Prélèvement",   type:"paiement"},
     "560":{lib:"Paiement CB",   type:"paiement"},
+    "937":{lib:"Paiement en ligne", type:"paiement"},
+    "977":{lib:"Mensualité prélevée", type:"paiement"},
+    "970":{lib:"Reprise de mensualités", type:"reprise"},
+    "901":{lib:"Réaffectation de paiement", type:"reaffectation"},
     "917C":{lib:"Remboursement par chèque", type:"remboursement"},
+    "917V":{lib:"Remboursement par virement", type:"remboursement"},
     "972":{lib:"Rejet de prélèvement", type:"rejet"},
+    "9228":{lib:"Prélèvement non effectué", type:"rejet"},
+    "9229":{lib:"Prélèvement non effectué", type:"rejet"},
     "973":{lib:"Frais de rejet", type:"frais"}
   };
-  var MODES={"PR":"prélèvement automatique","AC":"paiement en ligne / CB","CH":"chèque","VI":"virement","TP":"TIP"};
+  var MODES={"PR":"prélèvement automatique","AC":"paiement en ligne / CB","CH":"chèque",
+             "VI":"virement","TP":"TIP","ME":"mensualisation"};
 
   // Ce que chaque nature d'opération veut dire, en français courant.
   // sens : "+" augmente ce que le client doit, "-" le diminue.
@@ -210,6 +219,21 @@
       d:"Le compte avait un excédent : il a été rendu au client, le solde du compte remonte donc d'autant."},
     "Rejet de prélèvement":{sens:"+",c:"un prélèvement qui n'a pas abouti : la somme redevient due",
       d:"Le prélèvement a été refusé par la banque. Le règlement est annulé, la somme repasse à la charge du client."},
+    "Prélèvement non effectué":{sens:"+",c:"un prélèvement qui n'a pas abouti : la somme redevient due",
+      d:"Le prélèvement n'a pas pu être encaissé (refus de la banque, contestation, mandat non admis). "+
+        "Le règlement correspondant est annulé et la somme repasse à la charge du client."},
+    "Remboursement par virement":{sens:"+",c:"une somme reversée au client par virement",
+      d:"Une somme encaissée a été rendue au client : elle ne règle donc plus rien sur le compte."},
+    "Paiement en ligne":{sens:"-",c:"un paiement fait par le client en ligne : il réduit ce qui reste dû",
+      d:"Paiement effectué par le client depuis son espace client ou par lien de paiement."},
+    "Mensualité prélevée":{sens:"-",c:"une mensualité encaissée dans le cadre de la mensualisation",
+      d:"Échéance mensuelle prélevée d'avance, en acompte sur la consommation à venir."},
+    "Reprise de mensualités":{sens:"+",c:"la reprise des mensualités déjà prélevées, au moment de la facture",
+      d:"À l'établissement de la facture, les mensualités versées d'avance sont reprises puis "+
+        "déduites du montant facturé. Ces écritures se compensent et ne changent pas le solde."},
+    "Réaffectation de paiement":{sens:"+",c:"un paiement déplacé d'une facture vers une autre",
+      d:"Le règlement a été retiré d'un endroit pour être affecté à une autre facture. "+
+        "L'opération se compense et ne change pas le solde total."},
     "Frais de rejet":{sens:"+",c:"les frais facturés à la suite d'un prélèvement refusé",
       d:"Frais appliqués lorsqu'un prélèvement est rejeté par la banque."}
   };
@@ -220,15 +244,44 @@
     if(!(m.debit>0)) return false;
     var c=CODES[m.code];
     if(c && (c.type==="rejet"||c.type==="remboursement")) return true;
-    if(c && c.type==="frais") return false;
+    if(c && (c.type==="frais"||c.type==="facture")) return false;
     var l=norm(m.lib)+" "+norm(m.libpiece);
     if(/frais/.test(l)) return false;
-    return /rejet|impay|rembours|rembourst|annulation|contre.?pass/.test(l);
+    return /rejet|impay|non effect|rembours|annulation|contre.?pass/.test(l);
+  }
+
+  // Une facture : par son code (906 / E906) ou, à défaut, par son libellé — en
+  // excluant les écritures qui parlent d'une facture sans en être une
+  // ("PRELEVEMENT FACTURE", "PRELEVT NON EFFECTUE"...).
+  function estFacture(m){
+    if(!(m.debit>0)) return false;
+    var c=String(m.code||"").toUpperCase().trim();
+    if(/^E?906$/.test(c)) return true;
+    if(CODES[c]) return CODES[c].type==="facture";
+    var l=norm(m.lib)+" "+norm(m.libpiece);
+    if(/non effect|rejet|impay|rembours|reprise|reaffect|annul|prelevement|mensualite/.test(l)) return false;
+    return /facture/.test(l);
   }
 
   // "Paiement CB" + 2 -> "paiements CB" ; "Frais de rejet" reste invariable
+  // Pluriels des natures d'opération : le participe passé s'accorde aussi
+  // ("2 prélèvements non effectués", pas "2 prélèvements non effectué").
+  var PLURIEL={
+    "Facture":"factures", "Avoir":"avoirs", "Prélèvement":"prélèvements",
+    "Paiement CB":"paiements CB", "Paiement en ligne":"paiements en ligne",
+    "Mensualité prélevée":"mensualités prélevées",
+    "Reprise de mensualités":"reprises de mensualités",
+    "Réaffectation de paiement":"réaffectations de paiement",
+    "Remboursement par chèque":"remboursements par chèque",
+    "Remboursement par virement":"remboursements par virement",
+    "Rejet de prélèvement":"rejets de prélèvement",
+    "Prélèvement non effectué":"prélèvements non effectués",
+    "Frais de rejet":"frais de rejet"
+  };
   function plural(lib,n){
-    var w=String(lib||"").split(" ");
+    var s=String(lib||"");
+    if(n>1 && PLURIEL[s]) return PLURIEL[s];
+    var w=s.split(" ");
     if(!w.length) return "";
     w[0]=w[0].charAt(0).toLowerCase()+w[0].slice(1);
     if(n>1 && !/[sx]$/i.test(w[0])) w[0]+="s";
@@ -464,23 +517,34 @@
       (groupes[k]=groupes[k]||[]).push(m);
     });
     var factures=[];
-    actifs.filter(function(m){ return m.debit>0 && (m.code==="906"||norm(m.lib).indexOf("facture")>=0); })
-      .forEach(function(f){
-        var g=(f.chrono? groupes[f.chrono] : []) || [];
-        var regle=g.filter(function(m){ return m!==f && m.credit>0; });
-        // Une facture lettrée avec un règlement n'est PAS réglée si ce règlement a
-        // ensuite été rejeté ou remboursé : la contre-écriture annule le règlement.
-        var contre=g.filter(function(m){ return m!==f && estContreEcriture(m); });
-        var encaisse=regle.reduce(function(s,m){return s+m.credit;},0);
-        var annule=contre.reduce(function(s,m){return s+m.debit;},0);
-        var paye=Math.round((encaisse-annule)*100)/100;
-        if(paye<0) paye=0;
-        var reste=Math.round((f.debit-paye)*100)/100;
-        factures.push({f:f, regle:regle, contre:contre,
-          encaisse:Math.round(encaisse*100)/100, annule:Math.round(annule*100)/100,
-          paye:paye, reste:reste,
-          statut: reste<=0.005?"soldee":(paye>0.005?"partielle":"due")});
+    actifs.filter(estFacture).forEach(function(f){
+      // Une écriture se rattache à une facture par son chrono de lettrage OU par son
+      // numéro de pièce. Le lettrage seul ne suffit pas : un rejet de prélèvement
+      // arrive souvent sans chrono, et seul le n° de pièce le relie à la facture.
+      var lies=actifs.filter(function(m){
+        if(m===f) return false;
+        if(f.chrono && m.chrono && m.chrono===f.chrono) return true;
+        if(f.piece && m.piece && m.piece===f.piece) return true;
+        return false;
       });
+      var regle=lies.filter(function(m){ return m.credit>0; });
+      // Tout débit rattaché à la facture, autre qu'une facture, vient en déduction
+      // de ce qui a été encaissé : rejet, remboursement, reprise, contre-passation.
+      // On ne cherche pas à deviner sa nature — on fait le net, c'est vérifiable.
+      var contre=lies.filter(function(m){ return m.debit>0 && !estFacture(m); });
+      var encaisse=regle.reduce(function(s,m){return s+m.credit;},0);
+      var annule=contre.reduce(function(s,m){return s+m.debit;},0);
+      var paye=Math.round((encaisse-annule)*100)/100;
+      if(paye<0) paye=0;
+      var reste=Math.round((f.debit-paye)*100)/100;
+      if(reste<0) reste=0;
+      // pour l'alerte et l'affichage : les contre-écritures qui annulent un règlement
+      var annulations=contre.filter(estContreEcriture);
+      factures.push({f:f, regle:regle, contre:contre, annulations:annulations,
+        encaisse:Math.round(encaisse*100)/100, annule:Math.round(annule*100)/100,
+        paye:paye, reste:reste,
+        statut: reste<=0.005?"soldee":(paye>0.005?"partielle":"due")});
+    });
     factures.sort(function(a,b){ return (b.f.date||0)-(a.f.date||0); });
 
     // paiements non rapprochés
@@ -502,9 +566,9 @@
     }
     // Règlement encaissé puis annulé : le piège du dossier « j'ai payé, vous me réclamez encore ».
     // Le client a bien vu le débit sur son relevé, et la facture reste pourtant due.
-    var annulees=factures.filter(function(x){ return x.annule>0.005; });
+    var annulees=factures.filter(function(x){ return x.annulations.length>0 && x.reste>0.005; });
     annulees.forEach(function(x){
-      var det=x.contre.map(function(m){
+      var det=x.annulations.map(function(m){
         return typeOp(m)+" de "+eur(m.debit)+" le "+m.dateStr+(m.rejet?" (motif : "+m.rejet+")":"");
       }).join(", ");
       alertes.push({niv:"haut",conf:"avéré",
@@ -525,7 +589,7 @@
     }
     // double facturation : même montant, même mois
     var vus={};
-    actifs.filter(function(m){return m.debit>0 && m.code==="906";}).forEach(function(f){
+    actifs.filter(estFacture).forEach(function(f){
       var k=(f.date? f.date.getFullYear()+"-"+f.date.getMonth() : "?")+"|"+f.debit.toFixed(2);
       if(vus[k]) alertes.push({niv:"haut",conf:"probable",t:"Double facturation suspectée",
         p:"Deux factures du même montant ("+eur(f.debit)+") sur le même mois : pièces "+vus[k]+" et "+f.piece+". À contrôler avant tout échange avec le client."});
@@ -564,8 +628,13 @@
                debit:Math.round(g.debit*100)/100,
                credit:Math.round(g.credit*100)/100 };
     }).filter(function(d){ return Math.abs(d.impact)>=0.005 || d.n>0; });
-    // ce qui augmente la dette d'abord, ce qui la réduit ensuite
-    decomp.sort(function(a,b){ return b.impact-a.impact; });
+    // les factures d'abord (c'est l'origine de la dette), puis ce qui l'augmente,
+    // puis ce qui la réduit : l'ordre dans lequel on l'explique au client
+    decomp.sort(function(a,b){
+      var fa=a.lib==="Facture"?0:1, fb=b.lib==="Facture"?0:1;
+      if(fa!==fb) return fa-fb;
+      return b.impact-a.impact;
+    });
     var sommeImpacts=Math.round(decomp.reduce(function(s,d){return s+d.impact;},0)*100)/100;
 
     // contrôle de cohérence
@@ -695,7 +764,7 @@
                    }),
                    // règlements encaissés puis annulés (rejet, remboursement) :
                    // le client les a vus sur son relevé, la facture reste due
-                   reglements_annules:(f.contre||[]).map(function(m){
+                   reglements_annules:(f.annulations||[]).map(function(m){
                      return { type:typeOp(m), montant:r2(m.debit), date:m.dateStr, motif:m.rejet||"" };
                    }) };
         }),
@@ -866,7 +935,7 @@
   }
 
   // ---------- d'où vient le solde ----------
-  function signe(v){ return (v>=0?"+ ":"− ")+eur(Math.abs(v)); }
+  function signe(v){ return Math.abs(v)<0.005 ? "sans effet" : (v>=0?"+ ":"− ")+eur(Math.abs(v)); }
 
   function origine(A){
     var s=A.solde, h="";
@@ -1031,8 +1100,8 @@
     A.factures.forEach(function(f){
       var det=f.regle.length? f.regle.map(function(m){ return typeOp(m)+" "+eur(m.credit)+" le "+m.dateStr+(modeLib(m)?" ("+modeLib(m)+")":""); }).join("<br>") :
         '<span style="color:var(--slate)">aucun règlement rattaché</span>';
-      if(f.contre && f.contre.length){
-        det+='<br><span class="deb">↩ annulé : '+f.contre.map(function(m){
+      if(f.annulations && f.annulations.length){
+        det+='<br><span class="deb">↩ annulé : '+f.annulations.map(function(m){
           return typeOp(m)+" "+eur(m.debit)+" le "+m.dateStr+(m.rejet?" — "+esc(m.rejet):"");
         }).join(" ; ")+'</span>';
       }

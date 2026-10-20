@@ -108,6 +108,9 @@
   .chk h5{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--signal);margin-bottom:8px}
   .chk ul{margin:0;padding-left:18px}
   .chk li{font-size:.87rem;line-height:1.6;color:#333;margin-bottom:4px}
+  .diag{margin-top:10px;font-size:.82rem}
+  .diag summary{cursor:pointer;color:var(--slate);font-family:var(--mono);font-size:11px}
+  .diag pre{margin-top:8px;background:var(--paper-2);border:1px solid var(--line-2);border-radius:var(--radius);padding:10px 12px;font-family:var(--mono);font-size:10.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;max-height:240px;overflow:auto}
 </style>
 </head>
 <body>
@@ -628,12 +631,16 @@
     });
   }
 
-  function renderFallback(raison){
+  function renderFallback(raison, detail){
     var box=$("rep-body"); if(!box) return;
+    var diag = detail ?
+      '<details class="diag"><summary>Détail technique (à me transmettre si ça se reproduit)</summary>'+
+      '<pre>'+esc(String(detail).slice(0,1500))+'</pre></details>' : '';
     box.innerHTML=
       '<div class="alert high"><div class="at">⚠ Rédaction automatique indisponible</div>'+
       '<p>'+esc(String(raison))+'. Le texte générique ci-dessous reste disponible : il est construit uniquement '+
-      'à partir des montants calculés, mais il ne répond pas spécifiquement à la demande du client.</p></div>'+
+      'à partir des montants calculés, mais il ne répond pas spécifiquement à la demande du client.</p>'+
+      diag+'</div>'+
       '<div class="rep"><div class="obj"><span class="k">Objet</span><span class="v">Le point sur votre compte</span></div>'+
       '<div class="corps" id="rep-corps">'+esc(texteEmail(A))+'</div>'+
       '<div class="foot"><button class="copy" data-t="rep-corps">Copier le corps</button></div></div>'+
@@ -653,10 +660,15 @@
       if(r.status===404) throw new Error("la fonction serveur compte-client-ai n'est pas déployée");
       var d=null;
       try{ d=await r.json(); }catch(e){ throw new Error("réponse illisible du serveur (code "+r.status+")"); }
-      if(!r.ok || (d&&d.error)) throw new Error((d&&d.error)||("erreur serveur "+r.status));
+      if(!r.ok || (d&&d.error)){
+        var e2=new Error((d&&d.error)||("erreur serveur "+r.status));
+        e2.detail=(d&&(d.raw||d.detail))||"";
+        if(d&&d.stop_reason) e2.detail="stop_reason : "+d.stop_reason+"\n\n"+e2.detail;
+        throw e2;
+      }
       renderReponse(d);
     }catch(err){
-      renderFallback(err.message||String(err));
+      renderFallback(err.message||String(err), err.detail||"");
     }
   }
 

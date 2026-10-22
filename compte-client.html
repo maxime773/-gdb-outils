@@ -121,6 +121,116 @@
   .diag{margin-top:10px;font-size:.82rem}
   .diag summary{cursor:pointer;color:var(--slate);font-family:var(--mono);font-size:11px}
   .diag pre{margin-top:8px;background:var(--paper-2);border:1px solid var(--line-2);border-radius:var(--radius);padding:10px 12px;font-family:var(--mono);font-size:10.5px;line-height:1.55;white-space:pre-wrap;word-break:break-word;max-height:240px;overflow:auto}
+
+  /* ===== explication en clair (puces) ===== */
+  .clair-lead{font-size:1.02rem;line-height:1.5;margin-bottom:4px;color:var(--ink)}
+  .clair-why{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);margin:12px 0 6px}
+  ul.clair{margin:0;padding-left:20px}
+  ul.clair>li{font-size:.93rem;line-height:1.6;margin-bottom:6px;color:#1F2B38}
+  ul.clair ul{padding-left:18px;margin-top:3px;list-style:"– "}
+  ul.clair ul li{font-size:.9rem;color:#33414F;margin-bottom:2px}
+
+  /* ===== sections ===== */
+  .sec{font-family:var(--mono);font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--steel);margin-top:28px}
+  .sec-sub{font-size:.83rem;color:var(--slate);margin-top:4px;line-height:1.5}
+
+  /* ===== couleurs par famille d'opération ===== */
+  .k-facture{--k:#0B3A67}
+  .k-prelevement,.k-paiement,.k-mensualite,.k-avoir{--k:#1C7C54}
+  .k-rejet,.k-frais{--k:#B3261E}
+  .k-remboursement{--k:#C96400}
+  .k-reaffectation,.k-reprise,.k-autre{--k:#5A6B7B}
+  svg.pic{display:block;width:54px;height:54px;color:var(--k);flex:none}
+  svg.pic.mini{display:inline-block;width:20px;height:20px;vertical-align:-5px;margin-right:7px}
+
+  /* ===== onglet « Par facture » ===== */
+  .fh{margin-top:12px;border:1px solid var(--line-2);border-radius:var(--radius);background:#fff;padding:0 14px 4px}
+  .fh summary{cursor:pointer;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 0;list-style:none}
+  .fh summary::-webkit-details-marker{display:none}
+  .fh summary::before{content:"▸";color:var(--slate);font-size:12px;transition:transform .15s}
+  .fh[open] summary::before{transform:rotate(90deg)}
+  .fh-t{font-weight:700;color:var(--steel);display:inline-flex;align-items:center}
+  .fh-d{font-size:.85rem;color:var(--slate)}
+  .fh-r{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink)}
+  .fh-f{font-size:.86rem;margin:10px 0 8px}
+  table.hist td{vertical-align:middle}
+  .hk{display:inline-flex;align-items:center;font-weight:600;font-size:.86rem}
+  .hn{margin-top:4px;font-size:.78rem;color:#7A1C17}
+  .hn .raw{color:var(--slate)}
+  td.runc{font-size:.8rem;color:var(--slate);white-space:nowrap}
+  .fx{font-family:var(--mono);font-size:11.5px;font-weight:700;white-space:nowrap}
+  .fx.up{color:#B3261E}.fx.down{color:#1C7C54}.fx.zero{color:var(--slate);font-weight:600}
+
+  /* ===== onglet « En images » ===== */
+  .ei-intro{background:var(--steel);border-radius:14px;padding:16px 20px;margin-top:16px}
+  .ei-kicker{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal)}
+  .ei-intro p{font-size:.92rem;margin-top:4px;color:#E4ECF4;line-height:1.5}
+
+  .ei-sheets{display:flex;flex-wrap:wrap;gap:18px;margin-top:16px;background:var(--paper-2);border-radius:14px;padding:22px}
+  .sheet{position:relative;width:150px;min-height:186px;background:#fff;border:1.5px solid #C5D0DB;border-radius:4px;
+         padding:14px 14px 44px;box-shadow:0 2px 0 #DCE3EB,0 8px 16px rgba(11,58,103,.07)}
+  .sheet::before{content:"";position:absolute;top:-1.5px;right:-1.5px;width:24px;height:24px;
+         background:linear-gradient(225deg,var(--paper-2) 50%,#E3E9F0 50%);
+         border-left:1.5px solid #C5D0DB;border-bottom:1.5px solid #C5D0DB;border-bottom-left-radius:4px}
+  .sh-d{font-family:var(--mono);font-size:10.5px;color:var(--slate)}
+  .sh-k{font-weight:800;font-size:.85rem;color:var(--steel);margin-top:2px}
+  .sh-lines i{display:block;height:3px;background:#E3E9F0;border-radius:2px;margin:7px 0}
+  .sh-lines i:nth-child(1){width:88%}.sh-lines i:nth-child(2){width:72%}.sh-lines i:nth-child(3){width:50%}
+  .sh-m{font-size:1.2rem;font-weight:800;color:var(--ink);margin-top:10px}
+  .sh-r{font-size:.74rem;color:#8A6412;margin-top:2px}
+  .sheet .stamp{position:absolute;right:10px;bottom:12px}
+  .sheet.ok .stamp{color:#1C7C54}.sheet.due .stamp{color:#B3261E}.sheet.part .stamp{color:#9A6B00}
+
+  .stamp{display:inline-block;transform:rotate(-7deg);border:2.5px solid currentColor;border-radius:5px;padding:3px 9px;
+         font-family:var(--mono);font-weight:800;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+         background:rgba(255,255,255,.92);opacity:.92}
+
+  .ei-eq{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
+  .chip{display:inline-flex;flex-direction:column;align-items:center;background:#fff;border:1.5px solid var(--line-2);
+        border-radius:10px;padding:8px 14px;min-width:112px}
+  .chip b{font-size:1.05rem;color:var(--ink)}
+  .chip small{font-size:.72rem;color:var(--slate);margin-top:1px}
+  .chip.tot{border-width:2px}
+  .chip.tot.due{border-color:#B3261E;background:#FFF5F4}.chip.tot.due b{color:#B3261E}
+  .chip.tot.ok{border-color:#1C7C54;background:var(--ok-soft)}.chip.tot.ok b{color:#1C7C54}
+  .op{font-size:1.4rem;font-weight:700;color:var(--slate)}
+
+  .ei-story{margin-top:14px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 14px 16px}
+  .ei-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .ei-tag{font-weight:800;color:var(--steel);font-size:.98rem}
+  .ei-amt{font-family:var(--mono);font-size:12px;color:var(--ink);background:#fff;border:1px solid var(--line-2);border-radius:999px;padding:2px 9px}
+  .ei-pc{font-family:var(--mono);font-size:11px;color:var(--slate)}
+  .ei-strip{display:flex;flex-wrap:wrap;align-items:stretch;row-gap:12px}
+  .ei-step{display:flex;align-items:stretch}
+  .ei-ar{flex:0 0 30px;display:flex;align-items:center;justify-content:center;color:#A9B6C3}
+  .ei-ar svg{width:24px;height:14px}
+  .ei-p{flex:0 0 176px;background:#fff;border:1.5px solid var(--line-2);border-top:4px solid var(--k);border-radius:12px;
+        padding:12px 12px 10px;display:flex;flex-direction:column;gap:3px}
+  .ei-p.k-rejet{background:#FFF8F7}
+  .ei-p .d{font-family:var(--mono);font-size:10.5px;color:var(--slate);margin-top:6px}
+  .ei-p .t{font-weight:700;font-size:.9rem;color:var(--ink);line-height:1.25}
+  .ei-p .s{font-size:.79rem;color:#3A4756;line-height:1.45}
+  .ei-p .n{font-size:.76rem;color:#7A1C17;background:#FBE9E7;border-radius:6px;padding:5px 7px;line-height:1.4;margin-top:3px}
+  .ei-p .foot{margin-top:auto;padding-top:8px;border-top:1px dashed var(--line-2);display:flex;flex-direction:column;gap:2px}
+  .runp{font-size:.74rem;color:var(--slate)}
+  .ei-end{flex:0 0 160px;border:2px dashed currentColor;border-radius:12px;display:flex;flex-direction:column;align-items:center;
+          justify-content:center;gap:8px;padding:14px;background:#fff;text-align:center}
+  .ei-end.due{color:#B3261E}.ei-end.ok{color:#1C7C54}.ei-end.zero{color:#6B7A89}
+  .ei-end .v{font-size:1.3rem;font-weight:800}
+  .ei-end .l{font-size:.78rem;color:var(--slate)}
+  .ei-calm{margin-top:14px;font-size:.86rem;color:var(--slate);display:flex;align-items:center}
+  .ei-leg{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:10px}
+  .lg{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--line-2);border-radius:10px;padding:8px 12px}
+  .lg svg.pic{width:40px;height:40px}
+  .lg b{display:block;font-size:.86rem;color:var(--ink)}
+  .lg span{font-size:.78rem;color:var(--slate);line-height:1.4}
+  @media(max-width:640px){
+    .ei-step{flex:1 1 100%;flex-direction:column}
+    .ei-p,.ei-end{flex:1 1 auto}
+    .ei-ar{flex:0 0 26px;width:100%}.ei-ar svg{transform:rotate(90deg)}
+    .sheet{width:calc(50% - 9px)}
+    .fh-r{margin-left:0}
+  }
 </style>
 </head>
 <body>
@@ -248,6 +358,30 @@
     var l=norm(m.lib)+" "+norm(m.libpiece);
     if(/frais/.test(l)) return false;
     return /rejet|impay|non effect|rembours|annulation|contre.?pass/.test(l);
+  }
+
+  function estReaffectation(m){
+    var c=CODES[m.code];
+    if(c) return c.type==="reaffectation";
+    return /reaffect/.test(norm(m.lib)+" "+norm(m.libpiece));
+  }
+
+  // Motifs de rejet bancaire, traduits. Le libellé brut reste affiché à côté :
+  // la traduction aide à comprendre, elle ne remplace pas la donnée.
+  var MOTIFS=[
+    [/contestation\s+debiteur|conteste/, "le titulaire du compte a contesté ce prélèvement auprès de sa banque"],
+    [/tip.?tep non admis|non admis sur c/, "le compte bancaire n'accepte pas ce type de prélèvement"],
+    [/provision|insuffisan/, "provision insuffisante sur le compte bancaire"],
+    [/compte (clos|cloture)|cloture/, "le compte bancaire est clôturé"],
+    [/opposition/, "le titulaire du compte a fait opposition"],
+    [/mandat/, "le mandat de prélèvement est absent ou invalide"],
+    [/deced|deces/, "titulaire du compte décédé"]
+  ];
+  function motifBrut(s){ return String(s||"").replace(/\s*-\s*\d{2}\/\d{2}\/\d{4}\s*$/,"").trim(); }
+  function motifClair(s){
+    var n=norm(s);
+    for(var i=0;i<MOTIFS.length;i++){ if(MOTIFS[i][0].test(n)) return MOTIFS[i][1]; }
+    return "";
   }
 
   // Une facture : par son code (906 / E906) ou, à défaut, par son libellé — en
@@ -502,7 +636,7 @@
         }
       }
     }
-    mv.forEach(function(m,i){ m.annule=annul.has(i); });
+    mv.forEach(function(m,i){ m.annule=annul.has(i); m._i=i; });
     var actifs=mv.filter(function(m){ return !m.annule; });
 
     // --- totaux (déterministes) ---
@@ -536,16 +670,67 @@
       var annule=contre.reduce(function(s,m){return s+m.debit;},0);
       var paye=Math.round((encaisse-annule)*100)/100;
       if(paye<0) paye=0;
-      var reste=Math.round((f.debit-paye)*100)/100;
-      if(reste<0) reste=0;
+      // net = ce que cette pièce pèse réellement dans le solde (frais compris)
+      var net=Math.round((f.debit-encaisse+annule)*100)/100;
+      var reste=net<0?0:net;
       // pour l'alerte et l'affichage : les contre-écritures qui annulent un règlement
       var annulations=contre.filter(estContreEcriture);
-      factures.push({f:f, regle:regle, contre:contre, annulations:annulations,
+      // l'historique complet de la facture : elle-même + tout ce qui s'y rattache
+      var hist=[f].concat(lies.filter(function(m){ return !estFacture(m); }));
+      hist.sort(function(a,b){
+        var d=(a.date||0)-(b.date||0); if(d) return d;
+        var fa=a===f?0:1, fb=b===f?0:1; if(fa!==fb) return fa-fb;
+        return a._i-b._i;
+      });
+      factures.push({f:f, lies:lies, hist:hist, regle:regle, contre:contre, annulations:annulations,
         encaisse:Math.round(encaisse*100)/100, annule:Math.round(annule*100)/100,
-        paye:paye, reste:reste,
+        paye:paye, net:net, reste:reste,
         statut: reste<=0.005?"soldee":(paye>0.005?"partielle":"due")});
     });
     factures.sort(function(a,b){ return (b.f.date||0)-(a.f.date||0); });
+
+    // --- mouvements qui ne se rattachent à aucune facture ---
+    // (paiement en ligne remboursé, paiement en attente d'affectation…)
+    // Un même mouvement ne doit compter que pour une seule facture : on le vérifie.
+    var liaisons=new Map();
+    factures.forEach(function(x){
+      x.hist.forEach(function(m){ liaisons.set(m,(liaisons.get(m)||0)+1); });
+    });
+    var multi=actifs.filter(function(m){ return (liaisons.get(m)||0)>1; });
+    var horsMap={};
+    actifs.forEach(function(m){
+      if(liaisons.has(m)) return;
+      var k = m.chrono ? "c:"+m.chrono : (m.piece ? "p:"+m.piece : "u:"+m._i);
+      (horsMap[k]=horsMap[k]||[]).push(m);
+    });
+    var hors=Object.keys(horsMap).map(function(k){
+      var g=horsMap[k].slice().sort(function(a,b){ return ((a.date||0)-(b.date||0)) || (a._i-b._i); });
+      var n=Math.round(g.reduce(function(s,m){return s+m.debit-m.credit;},0)*100)/100;
+      return { mvts:g, net:n };
+    }).sort(function(a,b){ return (a.mvts[0].date||0)-(b.mvts[0].date||0); });
+
+    // --- réaffectations : relier le paiement déplacé à la facture qui l'a reçu ---
+    var reaffDeb=actifs.filter(function(m){ return estReaffectation(m) && m.debit>0; });
+    var reaffCre=actifs.filter(function(m){ return estReaffectation(m) && m.credit>0; });
+    var pris=new Set();
+    reaffCre.forEach(function(c){
+      var d=reaffDeb.filter(function(m){ return !pris.has(m) && Math.abs(m.debit-c.credit)<0.005; })
+        .sort(function(a,b){ return (a.dateStr===c.dateStr?0:1)-(b.dateStr===c.dateStr?0:1); })[0];
+      if(!d) return;
+      pris.add(d);
+      // le paiement d'origine : le crédit (hors réaffectation) du groupe d'où part le débit
+      var grp=d.chrono ? actifs.filter(function(m){ return m.chrono===d.chrono; }) : [d];
+      var orig=grp.filter(function(m){ return m.credit>0 && !estReaffectation(m); })
+        .sort(function(a,b){ return Math.abs(a.credit-d.debit)-Math.abs(b.credit-d.debit); })[0];
+      var dest=factures.filter(function(x){ return x.hist.indexOf(c)>=0; })[0];
+      if(orig) c.depuis={ type:typeOp(orig), date:orig.dateStr, montant:orig.credit };
+      if(dest) d.vers={ piece:dest.f.piece, date:dest.f.dateStr };
+    });
+
+    // --- contrôle : factures + hors facture = solde ---
+    var sommeNets=Math.round(factures.reduce(function(s,x){return s+x.net;},0)*100)/100;
+    var sommeHors=Math.round(hors.reduce(function(s,g){return s+g.net;},0)*100)/100;
+    var reconcilie=multi.length===0 && Math.abs(sommeNets+sommeHors-solde)<0.005;
 
     // paiements non rapprochés
     var nonLettres=actifs.filter(function(m){ return m.credit>0 && !m.chrono; });
@@ -581,6 +766,12 @@
           " <b>Le client a pu voir le débit sur son relevé bancaire</b> : ne lui affirmez ni qu'il n'a jamais payé, "+
           "ni que la facture est réglée. Vérifiez la date et le motif de l'annulation avant de répondre."});
     });
+    if(multi.length){
+      alertes.push({niv:"moy",conf:"à vérifier",t:multi.length+" mouvement(s) rattaché(s) à plusieurs factures",
+        p:"Ces écritures partagent un lettrage ou un numéro de pièce avec plusieurs factures : "+
+          multi.map(function(m){ return typeOp(m)+" de "+eur(m.debit||m.credit)+" le "+m.dateStr; }).join(", ")+
+          ". Le reste dû facture par facture peut être faussé ; le solde global, lui, reste exact."});
+    }
     if(nonLettres.length){
       alertes.push({niv:"moy",conf:"à vérifier",t:nonLettres.length+" paiement(s) non rapproché(s)",
         p:"Ces règlements ne sont rattachés à aucune facture par le lettrage : "+
@@ -645,6 +836,7 @@
             totDeb:totDeb, totCre:totCre, solde:solde, factures:factures,
             nonLettres:nonLettres, alertes:alertes, coherent:coherent,
             decomp:decomp, sommeImpacts:sommeImpacts, annulees:annulees,
+            hors:hors, sommeNets:sommeNets, sommeHors:sommeHors, reconcilie:reconcilie, multi:multi,
             sources:srcs, doublons:doublons, conflits:conflits,
             derniere: actifs.slice().sort(function(a,b){return (b.date||0)-(a.date||0);})[0]};
   }
@@ -765,9 +957,24 @@
                    // règlements encaissés puis annulés (rejet, remboursement) :
                    // le client les a vus sur son relevé, la facture reste due
                    reglements_annules:(f.annulations||[]).map(function(m){
-                     return { type:typeOp(m), montant:r2(m.debit), date:m.dateStr, motif:m.rejet||"" };
+                     return { type:typeOp(m), montant:r2(m.debit), date:m.dateStr, motif:m.rejet||"",
+                              motif_explique:motifClair(m.rejet) };
+                   }),
+                   // tout ce qui s'est passé sur la facture, dans l'ordre, en mots simples
+                   historique: fusion(f.hist).map(function(e){
+                     return { date:e.date, quoi:e.titre, en_clair:e.phrase, effet:r2(e.eff), precision:e.note||"" };
                    }) };
         }),
+        // paiements qui ne concernent aucune facture (remboursés, en attente…)
+        mouvements_hors_facture: (An.hors||[]).map(function(g){
+          return { effet_sur_solde:r2(g.net),
+                   historique: fusion(g.mvts).map(function(e){
+                     return { date:e.date, quoi:e.titre, en_clair:e.phrase, effet:r2(e.eff) };
+                   }) };
+        }),
+        // l'explication calculée par l'outil, déjà vérifiée : la base de l'email
+        explication_verifiee: enClair(An).plain,
+        detail_par_facture_coherent: !!An.reconcilie,
         // Le dossier présente-t-il un règlement encaissé puis annulé ?
         reglement_encaisse_puis_annule: (An.annulees||[]).length>0,
         reglementsNonRattaches: An.nonLettres.map(function(m){
@@ -815,7 +1022,7 @@
             'alors que la facture reste due. Les deux versions sont vraies en même temps, et une réponse trop '+
             'affirmative dans un sens ou dans l\'autre aggrave le litige.'
           : 'Le modèle signale que les données ne tranchent pas la question posée par le client.')+
-        ' Contrôlez l\'onglet « Alertes » et le rapprochement avant tout envoi.</p></div>'
+        ' Contrôlez les onglets « Alertes » et « Par facture » avant tout envoi.</p></div>'
       : '';
 
     h+='<div class="rep">'+
@@ -859,8 +1066,7 @@
     var all=$("cp-all");
     if(all) all.addEventListener("click",function(){
       // copie enrichie : le gras survit au collage dans Outlook / Gmail
-      var htmlMail='<p><b>Objet :</b> '+esc(objet)+'</p><div>'+
-        md(corps).replace(/\n/g,"<br>")+'</div>';
+      var htmlMail='<p><b>Objet :</b> '+esc(objet)+'</p>'+mailHtml(corps);
       copyRich(htmlMail, "Objet : "+objet+"\n\n"+unmd(corps));
       all.textContent="Copié !"; all.classList.add("done");
       setTimeout(function(){ all.textContent="Copier l'email (avec le gras)"; all.classList.remove("done"); },1600);
@@ -908,6 +1114,19 @@
     }
   }
 
+  // l'email en HTML pour le collage : paragraphes + vraies listes à puces
+  function mailHtml(t){
+    var out="", inList=false;
+    String(t||"").split("\n").forEach(function(l){
+      var m=l.match(/^\s*[-•–]\s+(.*)$/);
+      if(m){ if(!inList){ out+="<ul>"; inList=true; } out+="<li>"+md(m[1])+"</li>"; return; }
+      if(inList){ out+="</ul>"; inList=false; }
+      out+= l.trim() ? '<p style="margin:0 0 6px">'+md(l)+'</p>' : '<p style="margin:0 0 6px">&nbsp;</p>';
+    });
+    if(inList) out+="</ul>";
+    return out;
+  }
+
   // copie avec mise en forme (text/html) + repli texte simple
   function copyRich(html, plain){
     try{
@@ -926,7 +1145,10 @@
       if(b.dataset.bound) return; b.dataset.bound="1";
       b.addEventListener("click",function(){
         var el=$(b.getAttribute("data-t")); if(!el) return;
-        navigator.clipboard.writeText(el.textContent).catch(function(){});
+        var hEl=b.getAttribute("data-h")?$(b.getAttribute("data-h")):null;
+        var plain=el.value!=null&&el.tagName==="TEXTAREA"?el.value:el.textContent;
+        if(hEl) copyRich(hEl.innerHTML, plain);
+        else navigator.clipboard.writeText(plain).catch(function(){});
         var old=b.textContent;
         b.textContent="Copié !"; b.classList.add("done");
         setTimeout(function(){ b.textContent=old; b.classList.remove("done"); },1600);
@@ -946,7 +1168,7 @@
        '<th>Étape</th><th>Ce que c\'est</th><th class="r">Nb</th><th class="r">Effet sur le compte</th><th class="r">Compte après</th>'+
        '</tr></thead><tbody>';
     h+='<tr><td><b>Point de départ</b></td><td style="color:var(--slate);font-size:.84rem">Compte à zéro, avant toute opération de la période</td>'+
-       '<td class="r">—</td><td class="r">—</td><td class="r mono"><b>'+eur(0)+'</b></td></tr>';
+       '<td class="r">—</td><td class="r">—</td><td class="r mono">'+eur(0)+'</td></tr>';
     var cum=0;
     A.decomp.forEach(function(d){
       var e=explNature(d.lib,d.impact);
@@ -954,7 +1176,7 @@
       h+='<tr><td><b>'+esc(d.lib)+'</b></td>'+
          '<td style="color:var(--slate);font-size:.84rem">'+esc(e.c)+'</td>'+
          '<td class="r mono">'+d.n+'</td>'+
-         '<td class="r '+(d.impact>=0?"deb":"cre")+'"><b>'+signe(d.impact)+'</b></td>'+
+         '<td class="r '+(Math.abs(d.impact)<0.005?"":(d.impact>=0?"deb":"cre"))+'">'+signe(d.impact)+'</td>'+
          '<td class="r mono">'+eur(cum)+'</td></tr>';
     });
     h+='<tr style="background:var(--paper-2)"><td><b>Solde final</b></td>'+
@@ -970,72 +1192,446 @@
          : '⚠ Contrôle : la somme des étapes ('+eur(A.sommeImpacts)+') ne retombe pas sur le solde ('+eur(A.solde)+'). À vérifier avant d\'expliquer quoi que ce soit au client.')+
        '</p>';
 
-    // 2) l'explication en clair, chiffres en gras
-    var lignes=[];
-    var fact=A.decomp.filter(function(d){return d.impact>0;});
-    var regl=A.decomp.filter(function(d){return d.impact<0;});
-    var totPlus=Math.round(fact.reduce(function(x,d){return x+d.impact;},0)*100)/100;
-    var totMoins=Math.round(regl.reduce(function(x,d){return x+Math.abs(d.impact);},0)*100)/100;
-
-    lignes.push("Sur la période consultée, le compte a été augmenté de **"+eur(totPlus)+"** au total : "+
-      fact.map(function(d){ return "**"+eur(d.impact)+"** au titre de **"+d.n+"** "+plural(d.lib,d.n); }).join(", ")+".");
-    if(regl.length){
-      lignes.push("En face, **"+eur(totMoins)+"** sont venus en déduction : "+
-        regl.map(function(d){ return "**"+eur(Math.abs(d.impact))+"** de **"+d.n+"** "+plural(d.lib,d.n); }).join(", ")+".");
-    } else {
-      lignes.push("Aucun règlement ni avoir n'est venu en déduction sur la période.");
-    }
-    if(Math.abs(s)<0.005){
-      lignes.push("La différence est nulle : **tout ce qui a été facturé a été réglé**, il ne reste rien à payer.");
-    } else if(s>0){
-      lignes.push("La différence entre les deux donne **"+eur(totPlus)+"** − **"+eur(totMoins)+"** = **"+eur(s)+"**, "+
-        "qui est la somme restant due à ce jour.");
-    } else {
-      lignes.push("Les règlements dépassent ce qui a été facturé de **"+eur(Math.abs(s))+"** : "+
-        "cette somme est en faveur du client, elle viendra en déduction de la prochaine facture ou sera remboursée.");
-    }
-    if(A.annules) lignes.push("**"+A.annules+" écriture"+(A.annules>1?"s ont":" a")+"** été annulée"+(A.annules>1?"s":"")+
-      " puis contre-passée"+(A.annules>1?"s":"")+" : elles s'annulent deux à deux et n'entrent pas dans le calcul.");
-    if(A.doublons) lignes.push("**"+A.doublons+" ligne"+(A.doublons>1?"s":"")+"** présente"+(A.doublons>1?"s":"")+
-      " en double dans les fichiers déposés "+(A.doublons>1?"ont":"a")+" été comptée"+(A.doublons>1?"s":"")+" une seule fois.");
-
+    // 2) l'explication en clair : à puces, facture par facture, un seul chiffre en gras
+    var ec=enClair(A);
     h+='<div class="client" style="margin-top:18px"><h4>L\'explication, en clair</h4>'+
-       '<div class="txt" id="txt-clair">'+lignes.map(function(l){return md(l);}).join("\n\n")+'</div>'+
-       '<button class="copy" data-t="txt-clair">Copier</button></div>';
+       '<div id="txt-clair">'+ec.html+'</div>'+
+       '<textarea id="txt-clair-plain" hidden>'+esc(ec.plain)+'</textarea>'+
+       '<button class="copy" data-t="txt-clair-plain" data-h="txt-clair">Copier</button></div>';
 
-    // 3) chaque nature de ligne, expliquée
-    h+='<div class="chk" style="border-left-color:var(--steel)"><h5 style="color:var(--steel)">Chaque chiffre, expliqué</h5><ul>';
+    // 3) chaque nature de ligne, expliquée (le libellé en gras, pas le montant)
+    h+='<div class="chk" style="border-left-color:var(--steel)"><h5 style="color:var(--steel)">Chaque ligne du tableau, expliquée</h5><ul>';
     A.decomp.forEach(function(d){
       var e=explNature(d.lib,d.impact);
-      h+='<li><strong>'+esc(d.lib)+' — '+signe(d.impact)+'</strong> ('+d.n+' opération'+(d.n>1?"s":"")+') : '+esc(e.d)+'</li>';
+      h+='<li><strong>'+esc(d.lib)+'</strong> ('+signe(d.impact)+', '+d.n+' opération'+(d.n>1?"s":"")+') : '+esc(e.d)+'</li>';
     });
     h+='</ul></div>';
 
-    // 4) ce qui compose précisément le restant dû
-    var dues=A.factures.filter(function(f){ return f.statut!=="soldee"; });
-    if(s>0.005 && dues.length){
-      h+='<div class="tblwrap" style="margin-top:18px"><table class="cc"><thead><tr>'+
-         '<th>Ce qui reste dû, facture par facture</th><th>Date</th><th class="r">Montant</th>'+
-         '<th class="r">Déjà réglé</th><th class="r">Reste</th></tr></thead><tbody>';
-      dues.forEach(function(f){
-        h+='<tr><td class="mono">'+esc(f.f.piece)+'</td><td class="mono">'+esc(f.f.dateStr)+'</td>'+
-           '<td class="r">'+eur(f.f.debit)+'</td>'+
-           '<td class="r cre">'+(f.paye>0.005?eur(f.paye):"—")+'</td>'+
-           '<td class="r deb"><b>'+eur(f.reste)+'</b></td></tr>';
+    h+='<p class="disc">Tous les chiffres de cet onglet sont calculés par l\'outil à partir de l\'export, sans intervention d\'un modèle d\'IA. '+
+       'Le détail de chaque facture est dans l\'onglet « Par facture », sa version illustrée dans « En images ».</p>';
+    return h;
+  }
+
+  // ---------- l'explication en clair (puces) ----------
+  // Raisonne facture par facture : c'est ainsi qu'un client comprend son compte.
+  // La cascade globale (onglet du dessus) reste la preuve comptable.
+  function articleOp(m){
+    var k=kindOf(m);
+    if(k==="prelevement") return "un prélèvement";
+    if(k==="mensualite") return "les mensualités";
+    if(k==="avoir") return "un avoir";
+    var t=typeOp(m);
+    if(t==="Paiement en ligne") return "un paiement en ligne";
+    if(t==="Paiement CB") return "un paiement par carte";
+    return "un "+t.charAt(0).toLowerCase()+t.slice(1);
+  }
+  function raisonReglee(x){
+    var cr=x.hist.filter(function(m){ return m.credit>0 && kindOf(m)!=="reprise"; });
+    var last=cr[cr.length-1]; if(!last) return "";
+    if(kindOf(last)==="reaffectation" && last.depuis)
+      return "réglée par "+(last.depuis.type==="Paiement en ligne"?"le paiement en ligne":"le "+last.depuis.type.toLowerCase())+" du "+last.depuis.date;
+    return "réglée par "+articleOp(last)+" le "+last.dateStr;
+  }
+  function raisonDue(x){
+    if(x.annulations.length){
+      var a=x.annulations[x.annulations.length-1];
+      var c=x.regle.filter(function(m){ return Math.abs(m.credit-a.debit)<0.005 && (m.date||0)<=(a.date||0); }).pop();
+      var mc=motifClair(a.rejet);
+      if(kindOf(a)==="rejet")
+        return (c?"le prélèvement du "+c.dateStr:"un prélèvement")+" a été refusé par la banque le "+a.dateStr+
+               (mc?" ("+mc+")":"");
+      return (c?"le règlement du "+c.dateStr:"un règlement")+" a été annulé le "+a.dateStr;
+    }
+    if(x.paye>0.005) return "réglée en partie ("+eur(x.paye)+" déjà payés)";
+    return "pas encore réglée";
+  }
+  function phraseHors(g){
+    var cr=g.mvts.filter(function(m){ return m.credit>0; });
+    var rb=g.mvts.filter(function(m){ return kindOf(m)==="remboursement"; });
+    var ra=g.mvts.filter(function(m){ return kindOf(m)==="reaffectation" && m.debit>0; });
+    if(cr.length && rb.length && Math.abs(g.net)<0.005){
+      var p=cr[0], r=rb[0];
+      return articleOp(p).replace(/^un /,"Un ").replace(/^les /,"Les ")+" de "+eur(p.credit)+" du "+p.dateStr+
+        " a été remboursé "+(/virement/.test(norm(r.lib))?"par virement ":(/cheque/.test(norm(r.lib))?"par chèque ":""))+
+        "le "+r.dateStr+" : il n'entre pas dans le calcul.";
+    }
+    if(ra.length && Math.abs(g.net)<0.005) return "";   // déjà dit dans « réglée par… »
+    if(g.net<-0.005){
+      var c0=cr[0];
+      return (c0?articleOp(c0).replace(/^un /,"Un ").replace(/^les /,"Les ")+" de "+eur(Math.abs(g.net))+" du "+c0.dateStr:eur(Math.abs(g.net)))+
+        " n'est rattaché à aucune facture : il vient en déduction.";
+    }
+    if(g.net>0.005) return eur(g.net)+" ("+typeOp(g.mvts[0]).toLowerCase()+") ne concernent aucune facture précise : ils s'ajoutent au solde.";
+    return "";
+  }
+  function enClair(A){
+    var s=A.solde, items=[];
+    var head = Math.abs(s)<0.005 ? "Le compte est à jour : il ne reste **rien à payer**."
+             : s>0 ? "Il reste **"+eur(s)+"** à payer."
+             : "Le compte présente **"+eur(-s)+"** en faveur du client.";
+    var fs=A.factures.slice().sort(function(a,b){ return (a.f.date||0)-(b.f.date||0); });
+    var tot=Math.round(fs.reduce(function(t,x){return t+x.f.debit;},0)*100)/100;
+    var regl=fs.filter(function(x){ return x.statut==="soldee"; });
+    var dues=fs.filter(function(x){ return x.statut!=="soldee"; });
+
+    if(fs.length) items.push({t:fs.length+" facture"+(fs.length>1?"s":"")+" sur la période, pour "+eur(tot)+" au total."});
+    if(regl.length){
+      if(regl.length<=3) items.push({t:(regl.length===1?"1 facture est réglée :":regl.length+" factures sont réglées :"),
+        sub:regl.map(function(x){ var r=raisonReglee(x); return "celle du "+x.f.dateStr+" ("+eur(x.f.debit)+")"+(r?", "+r:""); })});
+      else items.push({t:regl.length+" factures sont réglées."});
+    }
+    if(dues.length) items.push({t:(dues.length===1?"1 facture reste à payer :":dues.length+" factures restent à payer :"),
+      sub:dues.map(function(x){ return "celle du "+x.f.dateStr+" : "+eur(x.reste)+" — "+raisonDue(x); })});
+    A.hors.forEach(function(g){ var t=phraseHors(g); if(t) items.push({t:t}); });
+
+    // le calcul, posé : chaque terme est une facture ou un mouvement hors facture
+    var termes=[];
+    fs.forEach(function(x){ if(Math.abs(x.net)>=0.005 && x.statut!=="soldee") termes.push(x.net); });
+    fs.forEach(function(x){ if(x.net<=-0.005) termes.push(x.net); });
+    A.hors.forEach(function(g){ if(Math.abs(g.net)>=0.005) termes.push(g.net); });
+    if(termes.length>1 && A.reconcilie){
+      var expr=termes.map(function(v,i){ return (i===0?(v<0?"− ":""):(v<0?" − ":" + "))+eur(Math.abs(v)); }).join("");
+      items.push({t:"Le calcul : "+expr+" = "+eur(s)+"."});
+    }
+    if(!A.reconcilie) items.push({t:"⚠ Le détail par facture ne retombe pas exactement sur le solde : vérifiez l'onglet « Par facture » avant d'annoncer un montant."});
+    if(A.annules) items.push({t:A.annules+" écriture"+(A.annules>1?"s annulées":" annulée")+" puis contre-passée"+(A.annules>1?"s":"")+" n'entre"+(A.annules>1?"nt":"")+" pas dans le calcul."});
+    if(A.doublons) items.push({t:A.doublons+" ligne"+(A.doublons>1?"s":"")+" en double dans les fichiers "+(A.doublons>1?"ont":"a")+" été comptée"+(A.doublons>1?"s":"")+" une seule fois."});
+
+    var html='<p class="clair-lead">'+md(head)+'</p>'+
+      (items.length?'<p class="clair-why">Pourquoi ce montant :</p><ul class="clair">'+items.map(function(it){
+        return '<li>'+esc(it.t)+(it.sub?'<ul>'+it.sub.map(function(x){return '<li>'+esc(x)+'</li>';}).join("")+'</ul>':'')+'</li>';
+      }).join("")+'</ul>':'');
+    var plain=unmd(head)+(items.length?"\n\nPourquoi ce montant :\n"+items.map(function(it){
+        return "• "+it.t+(it.sub?"\n"+it.sub.map(function(x){return "   – "+x;}).join("\n"):"");
+      }).join("\n"):"");
+    return { html:html, plain:plain };
+  }
+
+  // ---------- chaque mouvement, en mots simples ----------
+  function kindOf(m){
+    if(estFacture(m)) return "facture";
+    var t=(CODES[m.code]||{}).type||"";
+    // le code connu fait foi ; le libellé ne sert qu'à défaut
+    if(["rejet","remboursement","reaffectation","reprise","frais","avoir"].indexOf(t)>=0) return t;
+    if(t==="paiement") return m.code==="977"?"mensualite":(m.code==="971"?"prelevement":"paiement");
+    var l=norm(m.lib)+" "+norm(m.libpiece);
+    if(/frais/.test(l)) return "frais";
+    if(/non effect|rejet|impay/.test(l)) return "rejet";
+    if(t==="remboursement" || /rembours/.test(l)) return "remboursement";
+    if(t==="reaffectation" || /reaffect/.test(l)) return "reaffectation";
+    if(t==="reprise" || /reprise/.test(l)) return "reprise";
+    if(t==="frais" || /frais/.test(l)) return "frais";
+    if(t==="avoir" || /avoir/.test(l)) return "avoir";
+    if(m.code==="977" || /mensualite/.test(l)) return "mensualite";
+    if(m.code==="971" || /prelevement/.test(l)) return "prelevement";
+    if(m.credit>0) return "paiement";
+    return "autre";
+  }
+  var KIND_PL={ mensualite:"Mensualités prélevées", prelevement:"Prélèvements encaissés", paiement:"Paiements reçus",
+    rejet:"Prélèvements refusés", remboursement:"Remboursements", reprise:"Mensualités reprises",
+    avoir:"Avoirs", frais:"Frais de rejet", autre:"Opérations" };
+  var KIND_LEG={
+    facture:["Facture","Une somme à payer."],
+    prelevement:["Prélèvement","L'argent est pris sur le compte bancaire : la somme est payée."],
+    mensualite:["Mensualité","Un acompte payé d'avance, chaque mois."],
+    paiement:["Paiement","Le client a payé lui-même (en ligne, par carte…)."],
+    rejet:["Prélèvement refusé","La banque n'a pas payé : la somme redevient due."],
+    remboursement:["Remboursement","De l'argent rendu au client."],
+    reaffectation:["Paiement déplacé","Un paiement retiré d'un endroit pour régler une facture."],
+    reprise:["Mensualités reprises","Les acomptes sont repris dans la facture. Cela se compense."],
+    avoir:["Avoir","Une somme rendue, qui se déduit."],
+    frais:["Frais","Des frais ajoutés au compte."],
+    autre:["Autre opération","Une écriture comptable sans catégorie connue."]
+  };
+  function evtInfo(m){
+    var k=kindOf(m), mt=m.debit||m.credit;
+    var o={ k:k, eff:Math.round((m.debit-m.credit)*100)/100, mt:mt, date:m.dateStr, titre:"", phrase:"", note:"", motif:"" };
+    switch(k){
+      case "facture": o.titre="Facture émise"; o.phrase="Facture de "+eur(mt)+"."; break;
+      case "prelevement": o.titre="Prélèvement encaissé"; o.phrase=eur(mt)+" pris sur le compte bancaire."; break;
+      case "mensualite": o.titre="Mensualité prélevée"; o.phrase="Acompte de "+eur(mt)+" payé d'avance."; break;
+      case "paiement": o.titre=(typeOp(m)==="Paiement"?"Paiement reçu":typeOp(m)); o.phrase="Le client paie "+eur(mt)+"."; break;
+      case "rejet":
+        o.titre="Prélèvement refusé"; o.phrase="La banque n'a pas payé : "+eur(mt)+" redeviennent dus.";
+        var mb=motifBrut(m.rejet), mc=motifClair(m.rejet);
+        if(mb||mc) o.note=mc ? mc.charAt(0).toUpperCase()+mc.slice(1)+"." : "Motif : "+mb+".";
+        o.motif=mb; break;
+      case "remboursement":
+        var lv=norm(m.lib);
+        o.titre=/virement/.test(lv)?"Remboursé par virement":(/cheque/.test(lv)?"Remboursé par chèque":"Remboursé au client");
+        o.phrase=eur(mt)+" rendus au client."; break;
+      case "reaffectation":
+        if(m.credit>0){ o.titre="Paiement affecté ici";
+          o.phrase=m.depuis ? "Le "+m.depuis.type.toLowerCase()+" du "+m.depuis.date+" ("+eur(m.depuis.montant)+") règle cette facture."
+                            : eur(mt)+" déplacés vers cette facture."; }
+        else { o.titre="Paiement déplacé";
+          o.phrase=m.vers ? "Il part régler la facture du "+m.vers.date+"." : eur(mt)+" retirés pour être affectés ailleurs."; }
+        break;
+      case "reprise": o.titre="Mensualités reprises"; o.phrase="Les acomptes sont repris dans la facture."; break;
+      case "avoir": o.titre="Avoir"; o.phrase=eur(mt)+" rendus, déduits du compte."; break;
+      case "frais": o.titre="Frais de rejet"; o.phrase=eur(mt)+" de frais ajoutés."; break;
+      default: o.titre=typeOp(m); o.phrase=eur(mt)+".";
+    }
+    return o;
+  }
+  // Regroupe les mouvements de même nature du même jour : un dessin, pas cinq.
+  function fusion(list){
+    var out=[];
+    list.forEach(function(m){
+      var e=evtInfo(m), last=out[out.length-1];
+      if(last && last.k===e.k && last.date===e.date && e.k!=="facture" && e.k!=="reaffectation"){
+        last.n++; last.eff=Math.round((last.eff+e.eff)*100)/100; last.mt=Math.round((last.mt+e.mt)*100)/100;
+        if(e.note && last.note.indexOf(e.note)<0) last.note+=(last.note?" ":"")+e.note;
+      } else { e.n=1; out.push(e); }
+    });
+    out.forEach(function(e){
+      if(e.n<2) return;
+      e.titre=KIND_PL[e.k]||e.titre;
+      if(e.k==="reprise") e.phrase="Les acomptes sont repris dans la facture : les "+e.n+" écritures se compensent.";
+      else if(e.k==="mensualite") e.phrase=e.n+" acomptes payés d'avance, "+eur(Math.abs(e.eff))+" au total.";
+      else e.phrase=e.n+" opérations le même jour, "+eur(Math.abs(e.eff))+" au total.";
+    });
+    return out;
+  }
+  function fx(v){
+    if(Math.abs(v)<0.005) return '<span class="fx zero">sans effet</span>';
+    return v>0 ? '<span class="fx up">+ '+eur(v)+'</span>' : '<span class="fx down">− '+eur(-v)+'</span>';
+  }
+  function runTxt(v){
+    if(Math.abs(v)<0.005) return "rien à payer";
+    return v>0 ? "reste "+eur(v)+" à payer" : eur(-v)+" payés d'avance";
+  }
+
+  // ---------- les dessins ----------
+  // Un trait, une couleur par famille : bleu = facture, vert = argent reçu,
+  // rouge = refusé, orange = argent rendu, gris = écritures qui se compensent.
+  function euro(x,y,s){
+    return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-size="'+s+'" font-weight="800" fill="currentColor" stroke="none">€</text>';
+  }
+  var SHEET='<path d="M17 7h22l11 11v37a2 2 0 0 1-2 2H17a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z" fill="currentColor" fill-opacity=".08"/><path d="M39 7v11h11"/>';
+  var ICONS={
+    facture: SHEET+'<path d="M22 27h16M22 34h20M22 41h11"/>'+euro(41,52,13),
+    prelevement:'<path d="M4 24 22 13l18 11z" fill="currentColor" fill-opacity=".08"/><path d="M9 28v15M17 28v15M27 28v15M35 28v15M4 47h36"/>'+
+      '<path d="M43 36h9M48 31.5l4.5 4.5-4.5 4.5"/><circle cx="58" cy="36" r="4.5" fill="currentColor" fill-opacity=".15"/>',
+    paiement:'<rect x="10" y="11" width="44" height="31" rx="3" fill="currentColor" fill-opacity=".08"/><path d="M4 48h56l-3 6H7z"/>'+
+      '<rect x="21" y="19" width="22" height="15" rx="2"/><path d="M21 24.5h22M25 30h6"/>',
+    mensualite:'<rect x="10" y="13" width="44" height="42" rx="4" fill="currentColor" fill-opacity=".08"/><path d="M10 24h44M21 8v10M43 8v10"/>'+euro(32,47,17),
+    rejet:'<path d="M5 18h28M28 13l5 5-5 5"/><path d="M42 6v27" stroke-width="4.5"/><path d="M38 30H9M14 25l-5 5 5 5"/>'+
+      '<circle cx="48" cy="49" r="10" fill="currentColor" fill-opacity=".14"/><path d="M44 45l8 8M52 45l-8 8"/>',
+    remboursement:'<circle cx="15" cy="35" r="10" fill="currentColor" fill-opacity=".1"/>'+euro(15,40,13)+
+      '<path d="M29 35h9M34 30.5l4.5 4.5-4.5 4.5"/><circle cx="51" cy="22" r="7"/><path d="M39 54c0-8.5 5-14 12-14s12 5.5 12 14"/>',
+    reaffectation:'<path d="M5 14h13l5 5v24H5z" fill="currentColor" fill-opacity=".06"/><path d="M18 14v5h5"/>'+
+      '<path d="M41 14h13l5 5v24H41z" fill="currentColor" fill-opacity=".06"/><path d="M54 14v5h5"/>'+
+      '<path d="M26 29h11M33 24.5l4.5 4.5-4.5 4.5"/><circle cx="32" cy="51" r="6" fill="currentColor" fill-opacity=".15"/>',
+    reprise:'<path d="M14 26C17 15 47 15 50 26"/><path d="M52.4 19.5 50 26l-5.3-4.5"/>'+
+      '<path d="M50 38C47 49 17 49 14 38"/><path d="M11.6 44.5 14 38l5.3 4.5"/>'+euro(32,38,14),
+    avoir: SHEET+'<path d="M23 35h18" stroke-width="4"/>',
+    frais:'<path d="M8 32 30 10h22v22L30 54z" fill="currentColor" fill-opacity=".08"/><circle cx="43" cy="19" r="3"/>'+
+      '<path d="M29 25v12"/><circle cx="29" cy="43" r="1.6" fill="currentColor"/>',
+    autre:'<circle cx="32" cy="32" r="17" fill="currentColor" fill-opacity=".06"/><circle cx="32" cy="32" r="3.5" fill="currentColor"/>'
+  };
+  function icon(k,cls){
+    return '<svg class="pic '+(cls||"")+' k-'+k+'" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.6" '+
+      'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[k]||ICONS.autre)+'</svg>';
+  }
+  var ARROW='<div class="ei-ar" aria-hidden="true"><svg viewBox="0 0 28 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h22M18 3l6 5-6 5"/></svg></div>';
+
+  function badge(st){
+    return {soldee:'<span class="badge b-ok">Réglée</span>',partielle:'<span class="badge b-part">En partie</span>',due:'<span class="badge b-du">À payer</span>'}[st];
+  }
+  function histoireCourte(x){ return fusion(x.hist).map(function(e){ return e.titre; }).join(" → "); }
+  function evenementielle(x){
+    if(x.statut!=="soldee") return true;
+    var ev=fusion(x.hist);
+    return ev.length>2 || ev.some(function(e){ return ["rejet","remboursement","reaffectation","reprise","frais","avoir"].indexOf(e.k)>=0; });
+  }
+
+  // ---------- onglet « Par facture » : tout ce qui s'est passé sur chaque pièce ----------
+  function tableHist(list){
+    var h='<div class="tblwrap" style="margin-top:10px"><table class="cc hist"><thead><tr>'+
+      '<th>Date</th><th>Ce qui s\'est passé</th><th>En clair</th><th class="r">Effet</th><th class="r">Après cette date</th></tr></thead><tbody>';
+    var run=0;
+    list.forEach(function(m,i){
+      var e=evtInfo(m);
+      run=Math.round((run+e.eff)*100)/100;
+      var finJour=(i===list.length-1) || list[i+1].dateStr!==m.dateStr;
+      h+='<tr><td class="mono">'+esc(m.dateStr)+'</td>'+
+         '<td><span class="hk">'+icon(e.k,"mini")+esc(e.titre)+'</span></td>'+
+         '<td style="font-size:.83rem">'+esc(e.phrase)+
+           (e.note?'<div class="hn">'+esc(e.note)+(e.motif&&motifClair(m.rejet)?' <span class="raw">(« '+esc(e.motif)+' »)</span>':'')+'</div>':'')+'</td>'+
+         '<td class="r">'+fx(e.eff)+'</td>'+
+         '<td class="r runc">'+(finJour?esc(runTxt(run)):'')+'</td></tr>';
+    });
+    return h+'</tbody></table></div>';
+  }
+
+  function parFacture(A){
+    var h='';
+    // 1) vue d'ensemble
+    h+='<div class="tblwrap"><table class="cc"><thead><tr>'+
+      '<th>Facture</th><th>Date</th><th class="r">Montant</th><th>Ce qui s\'est passé</th><th class="r">Reste</th><th>Statut</th>'+
+      '</tr></thead><tbody>';
+    if(!A.factures.length) h+='<tr><td colspan="6" style="color:var(--slate)">Aucune facture identifiée.</td></tr>';
+    A.factures.forEach(function(x){
+      h+='<tr><td class="mono">'+esc(x.f.piece)+'</td><td class="mono">'+esc(x.f.dateStr)+'</td>'+
+         '<td class="r">'+eur(x.f.debit)+'</td><td style="font-size:.82rem;color:#33414F">'+esc(histoireCourte(x))+'</td>'+
+         '<td class="r">'+(x.reste>0.005?'<span class="deb">'+eur(x.reste)+'</span>':'—')+'</td><td>'+badge(x.statut)+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+
+    // 2) l'historique complet de chaque facture
+    var ordre=A.factures.slice().sort(function(a,b){
+      var da=a.statut==="soldee"?1:0, db=b.statut==="soldee"?1:0;
+      return (da-db) || ((b.f.date||0)-(a.f.date||0));
+    });
+    h+='<h4 class="sec">Historique complet, facture par facture</h4>'+
+       '<p class="sec-sub">Chaque ligne est une opération enregistrée sur la facture, dans l\'ordre des dates. '+
+       'La dernière colonne donne la situation de la facture à la fin de chaque journée.</p>';
+    ordre.forEach(function(x){
+      var ouvert=evenementielle(x);
+      h+='<details class="fh"'+(ouvert?' open':'')+'><summary>'+
+         '<span class="fh-t">'+icon("facture","mini")+'Facture '+esc(x.f.piece)+'</span>'+
+         '<span class="fh-d">du '+esc(x.f.dateStr)+' · '+eur(x.f.debit)+'</span>'+badge(x.statut)+
+         '<span class="fh-r">'+(x.reste>0.005?'Reste '+eur(x.reste):(x.net<-0.005?eur(-x.net)+' payés en plus':'Rien à payer'))+'</span>'+
+         '</summary>'+tableHist(x.hist)+
+         '<p class="fh-f">'+(x.reste>0.005
+            ? 'Reste à payer sur cette facture : <b>'+eur(x.reste)+'</b>.'
+            : (x.net<-0.005 ? 'Facture réglée, avec '+eur(-x.net)+' payés en plus.' : 'Facture entièrement réglée.'))+'</p>'+
+         '</details>';
+    });
+
+    // 3) ce qui ne se rattache à aucune facture
+    if(A.hors.length){
+      h+='<h4 class="sec">Mouvements qui ne concernent pas une facture précise</h4>'+
+         '<p class="sec-sub">Paiements remboursés, paiements en attente d\'affectation, frais… '+
+         'Ils comptent dans le solde, mais pas dans une facture.</p>';
+      A.hors.forEach(function(g){
+        var m0=g.mvts[0], e0=evtInfo(m0);
+        h+='<details class="fh" open><summary>'+
+           '<span class="fh-t">'+icon(e0.k,"mini")+esc(e0.titre)+'</span>'+
+           '<span class="fh-d">du '+esc(m0.dateStr)+' · '+eur(m0.debit||m0.credit)+'</span>'+
+           '<span class="fh-r">Effet sur le solde : '+(Math.abs(g.net)<0.005?'aucun':(g.net>0?'+ ':'− ')+eur(Math.abs(g.net)))+'</span>'+
+           '</summary>'+tableHist(g.mvts)+'</details>';
       });
-      var sommeRestes=Math.round(dues.reduce(function(x,f){return x+f.reste;},0)*100)/100;
-      h+='<tr style="background:var(--paper-2)"><td colspan="4"><b>Total des factures non soldées</b></td>'+
-         '<td class="r"><b>'+eur(sommeRestes)+'</b></td></tr></tbody></table></div>';
-      if(Math.abs(sommeRestes-s)>=0.005){
-        h+='<div class="alert"><div class="at">🟠 Écart entre le solde et les factures non soldées</div>'+
-           '<p>Le solde du compte est de <b>'+eur(s)+'</b> alors que les factures non soldées totalisent <b>'+eur(sommeRestes)+'</b>, '+
-           'soit un écart de <b>'+eur(Math.abs(s-sommeRestes))+'</b>. Cet écart vient en général de règlements non rattachés à une facture, '+
-           'ou de frais hors facture. À élucider avant d\'annoncer un montant au client.</p></div>';
-      }
     }
 
-    h+='<p class="disc">Tous les chiffres de cet onglet sont calculés par l\'outil à partir de l\'export, sans intervention d\'un modèle d\'IA. '+
-       'Ils sont reproductibles : la somme des étapes retombe sur le solde.</p>';
+    // 4) le contrôle qui rend le tout opposable
+    h+='<div class="ctrl '+(A.reconcilie?'ok':'ko')+'" style="margin-top:18px"><span class="ci">'+(A.reconcilie?'✓':'⚠')+'</span><div>'+
+       '<div class="cm">'+(A.reconcilie
+         ? 'Contrôle : les factures ('+eur(A.sommeNets)+')'+(A.hors.length?' et les mouvements hors facture ('+(A.sommeHors<0?'− ':'')+eur(Math.abs(A.sommeHors))+')':'')+
+           ' retombent exactement sur le solde du compte ('+eur(A.solde)+').'
+         : 'Contrôle : les factures ('+eur(A.sommeNets)+') et les mouvements hors facture ('+eur(A.sommeHors)+') ne retombent pas sur le solde ('+
+           eur(A.solde)+')'+(A.multi.length?' — '+A.multi.length+' mouvement(s) rattaché(s) à plusieurs factures':'')+
+           '. Le solde global reste exact ; le détail par facture est à vérifier.')+
+       '</div></div></div>';
+    return h;
+  }
+
+  // ---------- onglet « En images » ----------
+  function storyStrip(events, endHtml){
+    var h='<div class="ei-strip">', run=0;
+    events.forEach(function(e,i){
+      run=Math.round((run+e.eff)*100)/100;
+      h+='<div class="ei-step">'+(i?ARROW:'')+
+        '<div class="ei-p k-'+e.k+'">'+icon(e.k)+
+          '<div class="d">'+esc(e.date)+'</div>'+
+          '<div class="t">'+esc(e.titre)+'</div>'+
+          '<div class="s">'+esc(e.phrase)+'</div>'+
+          (e.note?'<div class="n">'+esc(e.note)+'</div>':'')+
+          '<div class="foot">'+fx(e.eff)+'<span class="runp">→ '+esc(runTxt(run))+'</span></div>'+
+        '</div></div>';
+    });
+    return h+'<div class="ei-step">'+ARROW+endHtml+'</div></div>';
+  }
+  function finFacture(x){
+    if(x.reste>0.005) return '<div class="ei-end due"><span class="stamp">'+(x.statut==="partielle"?"En partie réglée":"À payer")+'</span>'+
+      '<div class="v">'+eur(x.reste)+'</div><div class="l">reste à payer</div></div>';
+    return '<div class="ei-end ok"><span class="stamp">Réglée</span><div class="v">'+eur(0)+'</div><div class="l">'+
+      (x.net<-0.005?eur(-x.net)+' payés en plus':'plus rien à payer')+'</div></div>';
+  }
+  function finHors(g){
+    if(Math.abs(g.net)<0.005) return '<div class="ei-end zero"><span class="stamp">Sans effet</span><div class="v">'+eur(0)+'</div><div class="l">sur le solde</div></div>';
+    return '<div class="ei-end '+(g.net>0?'due':'ok')+'"><span class="stamp">'+(g.net>0?'S\'ajoute':'Se déduit')+'</span>'+
+      '<div class="v">'+(g.net>0?'+ ':'− ')+eur(Math.abs(g.net))+'</div><div class="l">sur le solde</div></div>';
+  }
+  function feuille(x){
+    var cls=x.statut==="soldee"?"ok":(x.statut==="partielle"?"part":"due");
+    return '<div class="sheet '+cls+'">'+
+      '<div class="sh-d">'+esc(x.f.dateStr)+'</div><div class="sh-k">Facture</div>'+
+      '<div class="sh-lines"><i></i><i></i><i></i></div>'+
+      '<div class="sh-m">'+eur(x.f.debit)+'</div>'+
+      '<span class="stamp">'+(x.statut==="soldee"?"Réglée":(x.statut==="partielle"?"En partie":"À payer"))+'</span>'+
+      (x.statut==="partielle"?'<div class="sh-r">reste '+eur(x.reste)+'</div>':'')+
+    '</div>';
+  }
+
+  function enImages(A){
+    var s=A.solde, h='', kinds={};
+    var fs=A.factures.slice().sort(function(a,b){ return (a.f.date||0)-(b.f.date||0); });
+
+    h+='<div class="ei-intro"><div class="ei-kicker">Le compte, en images</div>'+
+       '<p>Chaque feuille est une facture. Chaque dessin est une opération. On lit de gauche à droite, dans l\'ordre des dates.</p></div>';
+
+    // 1) les feuilles, puis l'addition
+    var vis=fs.length>8?fs.slice(-8):fs;
+    h+='<div class="ei-sheets">'+vis.map(feuille).join("")+'</div>';
+    if(fs.length>8) h+='<p class="sec-sub">'+(fs.length-8)+' facture(s) plus ancienne(s) non affichée(s) — voir l\'onglet « Par facture ».</p>';
+
+    var termes=[];
+    fs.forEach(function(x){ if(x.reste>0.005) termes.push({v:x.net,l:"facture du "+x.f.dateStr}); });
+    fs.forEach(function(x){ if(x.net<=-0.005) termes.push({v:x.net,l:"payé en plus, facture du "+x.f.dateStr}); });
+    A.hors.forEach(function(g){ if(Math.abs(g.net)>=0.005){ var tt=evtInfo(g.mvts[0]).titre; termes.push({v:g.net,l:tt.charAt(0).toLowerCase()+tt.slice(1)}); } });
+    if(A.reconcilie && termes.length){
+      h+='<div class="ei-eq">'+termes.map(function(t,i){
+          return (i?'<span class="op">'+(t.v<0?'−':'+')+'</span>':(t.v<0?'<span class="op">−</span>':''))+
+            '<span class="chip"><b>'+eur(Math.abs(t.v))+'</b><small>'+esc(t.l)+'</small></span>';
+        }).join("")+'<span class="op">=</span>'+
+        '<span class="chip tot '+(s>0.005?'due':'ok')+'"><b>'+eur(Math.abs(s))+'</b><small>'+
+          (s>0.005?'à payer':(s<-0.005?'en faveur du client':'rien à payer'))+'</small></span></div>';
+    } else if(A.reconcilie && Math.abs(s)<0.005){
+      h+='<div class="ei-eq"><span class="chip tot ok"><b>'+eur(0)+'</b><small>tout est réglé</small></span></div>';
+    } else if(!A.reconcilie){
+      h+='<div class="alert"><div class="at">🟠 L\'addition par facture ne retombe pas sur le solde</div><p>Le solde du compte ('+eur(s)+') est exact, '+
+         'mais le détail facture par facture ne s\'y raccorde pas. Vérifiez l\'onglet « Par facture » avant de vous appuyer sur ces images.</p></div>';
+    }
+
+    // 2) l'histoire des factures où il s'est passé quelque chose
+    var hist=fs.filter(evenementielle).reverse();
+    var calmes=fs.filter(function(x){ return !evenementielle(x); });
+    if(hist.length){
+      h+='<h4 class="sec">L\'histoire de chaque facture</h4>';
+      hist.forEach(function(x){
+        var ev=fusion(x.hist); ev.forEach(function(e){ kinds[e.k]=1; });
+        h+='<section class="ei-story"><div class="ei-h"><span class="ei-tag">Facture du '+esc(x.f.dateStr)+'</span>'+
+           '<span class="ei-amt">'+eur(x.f.debit)+'</span><span class="ei-pc">n° '+esc(x.f.piece)+'</span></div>'+
+           storyStrip(ev,finFacture(x))+'</section>';
+      });
+    }
+    if(calmes.length){
+      kinds.facture=1;
+      h+='<p class="ei-calm">'+icon("facture","mini")+(calmes.length===1?'1 autre facture a été réglée':calmes.length+' autres factures ont été réglées')+
+         ' sans incident, en une fois.</p>';
+    }
+
+    // 3) les paiements qui ne concernent pas une facture précise
+    if(A.hors.length){
+      h+='<h4 class="sec">Les paiements à part</h4><p class="sec-sub">Ils ne concernent pas une facture précise. On regarde seulement leur effet sur le solde.</p>';
+      A.hors.forEach(function(g){
+        var ev=fusion(g.mvts); ev.forEach(function(e){ kinds[e.k]=1; });
+        var m0=g.mvts[0];
+        h+='<section class="ei-story"><div class="ei-h"><span class="ei-tag">'+esc(evtInfo(m0).titre)+' du '+esc(m0.dateStr)+'</span>'+
+           '<span class="ei-amt">'+eur(m0.debit||m0.credit)+'</span></div>'+storyStrip(ev,finHors(g))+'</section>';
+      });
+    }
+
+    // 4) la légende des dessins réellement utilisés
+    var ks=Object.keys(KIND_LEG).filter(function(k){ return kinds[k]; });
+    if(ks.length){
+      h+='<h4 class="sec">Les dessins</h4><div class="ei-leg">'+ks.map(function(k){
+        return '<div class="lg">'+icon(k)+'<div><b>'+esc(KIND_LEG[k][0])+'</b><span>'+esc(KIND_LEG[k][1])+'</span></div></div>';
+      }).join("")+'</div>';
+    }
+    h+='<p class="disc">Ces images sont construites à partir des mêmes calculs que les autres onglets, sans intervention d\'un modèle d\'IA.</p>';
     return h;
   }
 
@@ -1071,8 +1667,8 @@
     // L'onglet « Réponse au client » n'existe que si une demande a été saisie ;
     // dans ce cas il est ouvert par défaut, c'est le livrable attendu par le conseiller.
     var rep = !!lastDemande;
-    var keys = rep ? ["rep","origine","rappr","chrono","alertes","client"]
-                   : ["origine","rappr","chrono","alertes","client"];
+    var keys = rep ? ["rep","origine","rappr","images","chrono","alertes","client"]
+                   : ["origine","rappr","images","chrono","alertes","client"];
     var first = keys[0];
     function tabCls(k){ return "tab"+(k===first?" on":""); }
     function paneCls(k){ return "pane"+(k===first?" on":""); }
@@ -1080,7 +1676,8 @@
     html+='<div class="tabs">'+
       (rep?'<button class="'+tabCls("rep")+'" id="t-rep">✉ Réponse au client</button>':'')+
       '<button class="'+tabCls("origine")+'" id="t-origine">D\'où vient le solde</button>'+
-      '<button class="'+tabCls("rappr")+'" id="t-rappr">Rapprochement</button>'+
+      '<button class="'+tabCls("rappr")+'" id="t-rappr">Par facture</button>'+
+      '<button class="'+tabCls("images")+'" id="t-images">En images</button>'+
       '<button class="'+tabCls("chrono")+'" id="t-chrono">Chronologie</button>'+
       '<button class="'+tabCls("alertes")+'" id="t-alertes">Alertes ('+A.alertes.length+')</button>'+
       '<button class="'+tabCls("client")+'" id="t-client">Explication client</button>'+
@@ -1092,31 +1689,17 @@
     // --- d'où vient le solde (100 % déterministe) ---
     html+='<div class="'+paneCls("origine")+'" id="p-origine">'+origine(A)+'</div>';
 
-    // --- rapprochement ---
-    html+='<div class="'+paneCls("rappr")+'" id="p-rappr"><div class="tblwrap"><table class="cc"><thead><tr>'+
-      '<th>Facture</th><th>Date</th><th class="r">Montant</th><th>Réglée par</th><th class="r">Reste dû</th><th>Statut</th>'+
-      '</tr></thead><tbody>';
-    if(!A.factures.length) html+='<tr><td colspan="6" style="color:var(--slate)">Aucune facture identifiée.</td></tr>';
-    A.factures.forEach(function(f){
-      var det=f.regle.length? f.regle.map(function(m){ return typeOp(m)+" "+eur(m.credit)+" le "+m.dateStr+(modeLib(m)?" ("+modeLib(m)+")":""); }).join("<br>") :
-        '<span style="color:var(--slate)">aucun règlement rattaché</span>';
-      if(f.annulations && f.annulations.length){
-        det+='<br><span class="deb">↩ annulé : '+f.annulations.map(function(m){
-          return typeOp(m)+" "+eur(m.debit)+" le "+m.dateStr+(m.rejet?" — "+esc(m.rejet):"");
-        }).join(" ; ")+'</span>';
-      }
-      var b={soldee:'<span class="badge b-ok">Soldée</span>',partielle:'<span class="badge b-part">Partielle</span>',due:'<span class="badge b-du">Due</span>'}[f.statut];
-      html+='<tr><td class="mono">'+esc(f.f.piece)+'</td><td class="mono">'+esc(f.f.dateStr)+'</td>'+
-            '<td class="r deb">'+eur(f.f.debit)+'</td><td style="font-size:.82rem">'+det+'</td>'+
-            '<td class="r">'+(f.reste>0.005?'<span class="deb">'+eur(f.reste)+'</span>':'—')+'</td><td>'+b+'</td></tr>';
-    });
-    html+='</tbody></table></div>';
+    // --- par facture : vue d'ensemble + historique complet de chaque pièce ---
+    html+='<div class="'+paneCls("rappr")+'" id="p-rappr">'+parFacture(A);
     if(A.nonLettres.length){
       html+='<div class="alert"><div class="at">⚠ Règlements non rattachés</div><p>'+
         A.nonLettres.map(function(m){return eur(m.credit)+" le "+m.dateStr+" ("+typeOp(m)+")";}).join(" · ")+
-        ' — ces montants ne sont rattachés à aucune facture par le lettrage.</p></div>';
+        ' — ces montants ne portent aucun lettrage.</p></div>';
     }
     html+='</div>';
+
+    // --- en images ---
+    html+='<div class="'+paneCls("images")+'" id="p-images">'+enImages(A)+'</div>';
 
     // --- chronologie ---
     html+='<div class="pane" id="p-chrono"><div class="tblwrap"><table class="cc"><thead><tr>'+

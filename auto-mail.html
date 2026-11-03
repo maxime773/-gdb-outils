@@ -38,7 +38,25 @@
   @media(max-width:700px){.stats{grid-template-columns:1fr 1fr}}
 
   .icard{background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px}
-  .ihead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+  .ihead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .ititle{min-width:0;flex:1}
+  .imeta{display:flex;gap:6px;flex:none;align-items:center;padding-top:3px;flex-wrap:wrap;justify-content:flex-end}
+  .ibar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+  .ib{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 12px;border:1px solid var(--line-2);border-radius:var(--radius);background:#fff;
+      font-family:var(--sans);font-size:.84rem;font-weight:600;color:var(--ink);cursor:pointer;white-space:nowrap}
+  .ib svg{width:15px;height:15px;flex:none}
+  .ib:hover:not(:disabled){border-color:var(--steel);color:var(--steel)}
+  .ib:disabled{opacity:.45;cursor:not-allowed}
+  .ib-up{border-color:var(--signal);color:#9A4E00;background:var(--signal-soft)}
+  .ib-up:hover:not(:disabled){border-color:#C96400;color:#7A3F0A}
+  .ib .cnt{margin-left:0}
+  .ib-v{font-family:var(--mono);font-size:10.5px;color:var(--slate);background:var(--paper-2);padding:1px 6px;border-radius:4px}
+  .ib-sp{flex:1}
+  .ib-q{border-color:transparent;background:transparent;color:var(--slate)}
+  .ib-q:hover:not(:disabled){background:var(--paper-2);border-color:transparent;color:var(--ink)}
+  .ib-del{padding:0 10px}
+  .ib-del:hover:not(:disabled){background:#FBE9E7;color:#B3261E}
+  @media(max-width:700px){.ib-sp{display:none}}
   .iname{font-size:1.05rem;font-weight:700;color:var(--steel)}
   .iid{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:2px}
   .iacts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
@@ -103,13 +121,13 @@
   .det-k{display:flex;align-items:center;gap:8px;padding-top:9px;cursor:pointer}
   .det-k input{width:16px;height:16px;accent-color:var(--steel)}
   .det-n{font-family:var(--mono);font-size:11px;color:#fff;background:var(--steel);border-radius:6px;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center}
-  .det-m{flex:1;min-width:0}
+  .det-m{flex:1 1 auto;min-width:220px}
   .det-m select{max-width:440px}
   .det-x{margin-top:7px;font-size:.88rem;font-style:italic;color:#2A3846;background:var(--paper);border-left:3px solid var(--signal);padding:6px 10px;border-radius:0 6px 6px 0}
   .det-j{margin-top:5px;font-size:.8rem;color:var(--slate)}
   .det-chg{display:inline-block;margin-top:6px;font-size:.78rem;color:#9A4E00}
-  .det-c{font-family:var(--mono);font-size:11.5px;font-weight:700;padding-top:10px;white-space:nowrap}
-  .det-c.hi{color:var(--ok)}.det-c.md{color:#9A6B00}.det-c.lo{color:#B3261E}.det-c.man{color:var(--slate);font-weight:600}
+  .det-c{flex:none;width:auto;font-family:var(--mono);font-size:11.5px;font-weight:700;padding-top:10px;white-space:nowrap}
+  .det-c.c-hi{color:var(--ok)}.det-c.c-md{color:#9A6B00}.det-c.c-lo{color:#B3261E}.det-c.c-man{color:var(--slate);font-weight:600}
   .det-nc{margin-top:12px;background:#FFF8EC;border:1px dashed #E8B96B;border-radius:var(--radius);padding:10px 12px;font-size:.86rem;color:#6B4A0F}
   .det-f{margin-top:12px}
   .det-done{font-size:.9rem;color:var(--ok);font-weight:700}
@@ -170,6 +188,15 @@
   .ax-add input{margin-top:3px;width:15px;height:15px;accent-color:var(--ok);flex:none}
   .ax-add span{font-family:var(--mono);font-size:12px;color:#145C3D;background:#E3F1EA;padding:2px 7px;border-radius:5px;line-height:1.5}
   .ax-add.sug span{color:#7A3F0A;background:var(--signal-soft)}
+  .lx{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px dashed var(--line)}
+  .lx:last-child{border-bottom:none}
+  .lx-all{padding-top:5px;cursor:pointer}
+  .lx-all input{width:15px;height:15px;accent-color:var(--ok)}
+  .lx-terms{display:flex;flex-wrap:wrap;gap:6px}
+  .lx-t{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;padding:4px 10px 4px 7px;border-radius:999px;
+        border:1px solid var(--line-2);background:#fff;color:var(--slate);cursor:pointer;user-select:none}
+  .lx-t input{width:13px;height:13px;accent-color:var(--ok);margin:0}
+  .lx-t.on{background:#E3F1EA;border-color:#B9DCC8;color:#145C3D}
   .ax-none{font-size:.82rem;color:var(--slate);font-style:italic}
   .obj{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   @media(max-width:760px){.obj{grid-template-columns:1fr}}
@@ -185,6 +212,8 @@
   /* ---- historique ---- */
   .vcur{font-family:var(--mono);font-size:10px;color:var(--ok);font-weight:700}
 
+  .bhead{margin-top:16px;padding:12px 14px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius)}
+  .bname{font-weight:700;color:var(--steel)}
   .toast{position:fixed;bottom:22px;right:22px;background:var(--steel);color:var(--paper);padding:12px 18px;border-radius:var(--radius);font-size:.9rem;z-index:1000;box-shadow:0 10px 28px -12px rgba(0,0,0,.5)}
   .toast.hidden{display:none}
   .ai-note{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:18px;display:flex;align-items:center;gap:8px}
@@ -237,7 +266,7 @@
         <div class="fg">
           <label class="fl" for="g-email">Email client à analyser</label>
           <textarea id="g-email" rows="7" placeholder="Collez ici un email client anonymisé…"></textarea>
-          <div class="fh">Séparez plusieurs emails par une ligne contenant uniquement <code>---</code>.</div>
+          <div class="fh">Séparez plusieurs emails par une ligne contenant uniquement <code>---</code>. Une analyse de plusieurs emails est conservée dans Import / Export › Historique.</div>
         </div>
         <button class="run" id="b-gtest">Analyser</button>
         <div class="progress" id="gprog" hidden><div class="track"><div class="fill" id="gfill"></div></div><div class="pstatus" id="gstat"></div></div>
@@ -268,6 +297,14 @@
         <div class="progress" id="bprog" hidden><div class="track"><div class="fill" id="bfill"></div></div><div class="pstatus" id="bstat"></div></div>
         <div id="bmsg"></div>
         <div id="bres"></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <div class="panel-strip"><span class="k">HISTORIQUE</span> imports précédents — conservés sur le serveur</div>
+      <div class="panel-body">
+        <p style="font-size:.9rem;color:var(--slate);margin-bottom:4px">Chaque import est enregistré au fur et à mesure de l'analyse : un rechargement de page ne fait plus rien perdre. Rouvrez un import pour continuer à traiter ses emails, ou reprenez une analyse interrompue là où elle s'était arrêtée.</p>
+        <div id="ihist"><p class="empty">Chargement…</p></div>
       </div>
     </div>
 
@@ -481,20 +518,32 @@
       '<div class="st acc"><div class="l">À intégrer aux prompts</div><div class="v">'+nNew+'</div></div>'+
       '<div class="st"><div class="l">Combinaisons multi</div><div class="v">'+nCb+'</div></div>';
   }
+  function svg(d){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+d+'</svg>'; }
+  var ICO={
+    test:svg('<path d="M7 4.5v15l12-7.5z"/>'),
+    actu:svg('<path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/>'),
+    hist:svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'),
+    edit:svg('<path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14 7l3 3"/>'),
+    del:svg('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>')
+  };
   function renderIntentions(){
     var h=D.intentions.map(function(i){
       var n=(i.exemples||[]).length, nn=nouveaux(i), v=ensureVersions(i), last=v[v.length-1];
       return '<div class="icard">'+
-        '<div class="ihead"><div><div class="iname">'+esc(i.name)+'</div>'+
+        '<div class="ihead"><div class="ititle"><div class="iname">'+esc(i.name)+'</div>'+
           '<div class="iid">'+esc(i.id)+' · prompt v'+last.n+(last.date?' du '+fdate(last.date).slice(0,10):'')+
           (i.derniereActualisation?' · actualisé le '+fdate(i.derniereActualisation).slice(0,10):'')+'</div></div>'+
-        '<div class="iacts"><span class="badge b-ex">'+n+' exemple'+(n>1?"s":"")+'</span>'+
-        '<button class="btn" data-test="'+i.id+'">Tester</button>'+
-        '<button class="btn up" data-actu="'+i.id+'"'+(n?'':' disabled title="Ajoutez d\'abord des exemples"')+'>↻ Actualiser le prompt'+
-          (nn?'<span class="cnt" title="exemples pas encore intégrés">'+nn+'</span>':'')+'</button>'+
-        '<button class="btn g" data-hist="'+i.id+'">Historique (v'+last.n+')</button>'+
-        '<button class="btn g" data-edit="'+i.id+'">Modifier</button>'+
-        '<button class="btn g d" data-del="'+i.id+'">Supprimer</button></div></div>'+
+          '<div class="imeta"><span class="badge b-ex">'+n+' exemple'+(n>1?"s":"")+'</span>'+
+          (nn?'<span class="badge b-new">'+nn+' à intégrer</span>':'')+'</div></div>'+
+        '<div class="ibar">'+
+          '<button class="ib" data-test="'+i.id+'">'+ICO.test+'Tester</button>'+
+          '<button class="ib'+(nn?' ib-up':'')+'" data-actu="'+i.id+'"'+(n?'':' disabled title="Ajoutez d\'abord des exemples"')+'>'+ICO.actu+'Actualiser le prompt'+
+            (nn?'<span class="cnt" title="exemples pas encore intégrés">'+nn+'</span>':'')+'</button>'+
+          '<button class="ib" data-hist="'+i.id+'">'+ICO.hist+'Historique<span class="ib-v">v'+last.n+'</span></button>'+
+          '<span class="ib-sp"></span>'+
+          '<button class="ib ib-q" data-edit="'+i.id+'">'+ICO.edit+'Modifier</button>'+
+          '<button class="ib ib-q ib-del" data-del="'+i.id+'" title="Supprimer l\'intention" aria-label="Supprimer l\'intention">'+ICO.del+'</button>'+
+        '</div>'+
         '<div class="prev"><div class="pb"><div class="pl">Business description</div><div class="pc">'+esc(i.description)+'</div></div>'+
         '<div class="pb"><div class="pl">Template de réponse</div><div class="pc">'+esc(i.template)+'</div></div></div>'+
         '<div class="tpanel hidden" id="tp-'+i.id+'">'+
@@ -541,14 +590,14 @@
 
   /* ---------- détection multi-intention : proposition à valider ou modifier ---------- */
   var DET={}, detSeq=0;
-  function confCls(c){ return c>=75?"hi":(c>=50?"md":"lo"); }
+  function confCls(c){ return c>=75?"c-hi":(c>=50?"c-md":"c-lo"); }
   function intOptions(sel){
     return D.intentions.map(function(i){ return '<option value="'+esc(i.id)+'"'+(i.id===sel?' selected':'')+'>'+esc(i.name)+'</option>'; }).join("");
   }
-  function detBlock(email,r,rowBtn){
+  function detBlock(email,r,rowBtn,ctx){
     var uid="d"+(++detSeq);
     var list=listOf(r);
-    DET[uid]={email:email,r:r||{},rowBtn:rowBtn||null,addEx:true,refine:false,
+    DET[uid]={email:email,r:r||{},rowBtn:rowBtn||null,ctx:ctx||null,addEx:true,refine:false,
       rows:list.filter(function(x){return byId(x.intention_id);}).map(function(x){
         return {orig:x.intention_id,id:x.intention_id,extrait:x.extrait||"",conf:x.confiance,just:x.justification||"",keep:true}; })};
     return '<div class="det" id="det-'+uid+'">'+detInner(uid)+'</div>';
@@ -566,7 +615,7 @@
           (x.orig&&x.id!==x.orig?'<div class="det-chg">✎ corrigée — détectée à l\'origine : « '+esc(nameOf(x.orig))+' »</div>':'')+
           (x.extrait?'<div class="det-x">« '+esc(x.extrait)+' »</div>':'')+
           (x.just?'<div class="det-j">'+esc(x.just)+'</div>':'')+'</div>'+
-        (x.conf!=null?'<span class="det-c '+confCls(x.conf)+'">'+x.conf+' %</span>':'<span class="det-c man">ajoutée</span>')+
+        (x.conf!=null?'<span class="det-c '+confCls(x.conf)+'">'+x.conf+' %</span>':'<span class="det-c c-man">ajoutée</span>')+
       '</div>';
     });
     h+='<div style="margin-top:10px"><button class="btn g s" data-dadd="'+uid+'">+ Ajouter une intention manquante</button></div>';
@@ -589,6 +638,7 @@
     if(!kept.length){
       $("det-"+uid).innerHTML='<div class="det-done" style="color:var(--slate)">Aucune intention retenue — rien n\'a été enregistré.</div>';
       if(c.rowBtn) c.rowBtn.textContent="✓ Traité";
+      markTraite(c.ctx,[]);
       return;
     }
     var multi=kept.length>1;
@@ -610,6 +660,7 @@
     $("det-"+uid).innerHTML='<div class="det-done">✓ Validé — '+kept.map(function(x){return esc(nameOf(x.id));}).join(" + ")+
       (c.addEx?' · ajouté aux exemples':'')+(multi?' · combinaison enregistrée':'')+'</div>';
     if(c.rowBtn) c.rowBtn.textContent="✓ Traité";
+    markTraite(c.ctx,kept.map(function(x){return x.id;}));
     var chg=kept.filter(function(x){ return x.orig&&x.orig!==x.id; });
     if(c.refine&&chg.length){
       openRefine(c.email,byId(chg[0].orig),byId(chg[0].id),null);
@@ -635,6 +686,10 @@
     var ak=r.getAttribute("data-ak");
     if(ak&&ACTU){ actuChange(r,function(){ var p=ak.split("|"); ACTU.add[p[0]][+p[1]].on=r.checked; }); return; }
     if(r.id==="ax-obj"&&ACTU){ actuChange(r,function(){ ACTU.useObj=r.checked; }); return; }
+    var lt=r.getAttribute("data-lt");
+    if(lt&&ACTU){ actuChange(r,function(){ var q=lt.split("|"); ACTU.add.lex[+q[0]].terms[+q[1]].on=r.checked; }); lexRefresh(); return; }
+    var lg=r.getAttribute("data-lg");
+    if(lg&&ACTU){ var on=r.checked; actuChange(r,function(){ ACTU.add.lex[+lg].terms.forEach(function(x){ x.on=on; }); }); lexRefresh(); return; }
   });
 
   document.addEventListener("click",function(e){
@@ -661,6 +716,9 @@
     var hv=b.getAttribute("data-hv"); if(hv){ histShow(hv); return; }
     var hr=b.getAttribute("data-hr"); if(hr){ histRestore(hr); return; }
     var mv=b.getAttribute("data-mv"); if(mv){ actuMove(mv,b); return; }
+    var io=b.getAttribute("data-iopen"); if(io){ openImport(io); return; }
+    var rs=b.getAttribute("data-resume"); if(rs){ resumeImport(rs); return; }
+    var idl=b.getAttribute("data-idel"); if(idl){ deleteImport(idl); return; }
   });
 
   /* ---------- test unitaire (par intention) ---------- */
@@ -809,16 +867,43 @@
   function termsOf(s){ var out=[],re=/"([^"]+)"|«\s*([^»]+?)\s*»|“([^”]+)”/g,m; while((m=re.exec(s))) out.push((m[1]||m[2]||m[3]).trim()); return out; }
   function clean(s){ return String(s||"").trim().replace(/^[-•*]\s*/,""); }
   function keyOf(s){ return norm(s).replace(/[^a-z0-9]+/g," ").trim(); }
-  // Champs lexicaux : on ne garde que les termes absents, dédoublonnés terme par terme.
-  function dedupeLex(P,list){
+  // Champs lexicaux : on ne garde que les termes absents, dédoublonnés terme par terme,
+  // regroupés par thème comme Claude les a proposés. Chaque terme se coche séparément.
+  function dedupeLexGroups(P,list){
     var have={}; secLines(P,"lex").forEach(function(l){ termsOf(l).forEach(function(t){ have[keyOf(t)]=1; }); });
     var out=[];
     (list||[]).forEach(function(line){
       var ts=termsOf(line); if(!ts.length) ts=clean(line).split(/\s*,\s*/);
       ts=ts.map(function(t){return t.replace(/["«»“”]/g,"").trim();}).filter(function(t){ var k=keyOf(t); if(!k||have[k]) return false; have[k]=1; return true; });
-      if(ts.length) out.push("- "+ts.map(function(t){return '"'+t+'"';}).join(", "));
+      if(ts.length) out.push(ts);
     });
     return out;
+  }
+  function lexLines(){
+    return ACTU.add.lex.map(function(g){ return g.terms.filter(function(x){return x.on;}).map(function(x){return x.t;}); })
+      .filter(function(ts){return ts.length;}).map(function(ts){ return "- "+ts.map(function(t){return '"'+t+'"';}).join(", "); });
+  }
+  function lexCount(on){ return ACTU.add.lex.reduce(function(n,g){ return n+g.terms.filter(function(x){return on?x.on:true;}).length; },0); }
+  function lexRows(){
+    var a=ACTU.add.lex;
+    if(!a.length) return '<div class="ax-none">Rien à ajouter : les emails sont déjà couverts.</div>';
+    return '<div class="ax-s" style="margin-bottom:8px">Cochez les termes un par un. La case de gauche coche ou décoche tout le thème.</div>'+
+      a.map(function(g,gi){
+        return '<div class="lx"><label class="lx-all" title="Tout le thème"><input type="checkbox" data-lg="'+gi+'"></label><div class="lx-terms">'+
+          g.terms.map(function(x,ti){
+            return '<label class="lx-t'+(x.on?' on':'')+'"><input type="checkbox" data-lt="'+gi+'|'+ti+'"'+(x.on?' checked':'')+'>'+esc(x.t)+'</label>';
+          }).join("")+'</div></div>';
+      }).join("");
+  }
+  function lexRefresh(){
+    var box=$("ax-lex"); if(!box) return;
+    box.innerHTML=lexRows();
+    ACTU.add.lex.forEach(function(g,gi){
+      var cb=box.querySelector('[data-lg="'+gi+'"]'); if(!cb) return;
+      var n=g.terms.filter(function(x){return x.on;}).length;
+      cb.checked=n===g.terms.length; cb.indeterminate=n>0&&n<g.terms.length;
+    });
+    var c=$("ax-lex-c"); if(c) c.textContent=lexCount(true)+" / "+lexCount(false)+" termes retenus";
   }
   function dedupeLines(P,k,list,fmt){
     var have={}; secLines(P,k).forEach(function(l){ var c=keyOf(clean(l)); if(c) have[c]=1; });
@@ -852,7 +937,7 @@
   function openActu(it,j,meta){
     var P=parseDesc(it.description,it.name);
     ACTU={id:it.id,j:j,meta:meta,P:P,useObj:P.structured&&!!j.objectif,manual:false,moved:{},
-      add:{ lex:dedupeLex(P,j.champs_lexicaux).map(function(t){return {t:t,on:true};}),
+      add:{ lex:dedupeLexGroups(P,j.champs_lexicaux).map(function(ts){ return {terms:ts.map(function(t){return {t:t,on:true};})}; }),
             int:dedupeLines(P,"int",j.intentions_a_detecter,fmtLine).map(function(t){return {t:t,on:true};}),
             pos:dedupeLines(P,"pos",j.exemples_positifs,fmtPos).map(function(t){return {t:t,on:true};}),
             exc:dedupeLines(P,"exc",j.exceptions_suggerees,fmtLine).map(function(t){return {t:t,on:false};}) }};
@@ -885,10 +970,12 @@
     // sections enrichies
     ["lex","int","pos"].forEach(function(k){
       var kept=secLines(P,k), a=ACTU.add[k];
+      var cnt = k==="lex" ? '<span id="ax-lex-c"></span>'
+                          : a.length+' ajout'+(a.length>1?"s":"")+' proposé'+(a.length>1?"s":"");
       h+='<div class="ax"><div class="ax-h"><span class="ax-t">'+SEC_LAB[k]+'</span><span class="ax-s">'+kept.length+' ligne'+(kept.length>1?"s":"")+' conservée'+(kept.length>1?"s":"")+
-         ' · '+a.length+' ajout'+(a.length>1?"s":"")+' proposé'+(a.length>1?"s":"")+'</span></div><div class="ax-b">'+
+         ' · '+cnt+'</span></div><div class="ax-b">'+
          (kept.length?'<details class="ax-keep"><summary>voir les lignes conservées</summary><pre>'+esc(kept.join("\n"))+'</pre></details>':'')+
-         addRows(k,false)+'</div></div>';
+         (k==="lex"?'<div id="ax-lex"></div>':addRows(k,false))+'</div></div>';
     });
     // exceptions : jamais automatiques
     var ke=secLines(P,"exc");
@@ -913,6 +1000,7 @@
        '<div class="fh">Construit automatiquement : toutes les lignes actuelles sont conservées, les ajouts cochés sont placés à la fin de chaque section. '+
        'Vous pouvez retoucher le texte ; cocher ou décocher une ligne le reconstruit.</div></div>';
     $("act-b").innerHTML=h;
+    lexRefresh();
     $("ax-final").value=buildActu();
     $("ax-final").addEventListener("input",function(){ ACTU.manual=true; });
   }
@@ -924,7 +1012,7 @@
   function buildActu(){
     var P=ACTU.P, lines=P.lines.slice(), ins=[], nouvelles=[];
     ["lex","int","exc","pos"].forEach(function(k){
-      var add=ACTU.add[k].filter(function(a){return a.on;}).map(function(a){return a.t;});
+      var add=k==="lex"?lexLines():ACTU.add[k].filter(function(a){return a.on;}).map(function(a){return a.t;});
       if(!add.length) return;
       var s=P.secs.filter(function(x){return x.k===k;})[0];
       if(s) ins.push({at:s.last+1,lines:add}); else nouvelles.push({k:k,lines:add});
@@ -953,9 +1041,9 @@
     if(!ACTU) return;
     var it=byId(ACTU.id); if(!it){ closeActu(); return; }
     var nv=$("ax-final").value;
-    var nb={lex:0,int:0,pos:0,exc:0}; Object.keys(nb).forEach(function(k){ nb[k]=ACTU.add[k].filter(function(a){return a.on;}).length; });
+    var nb={lex:lexCount(true),int:0,pos:0,exc:0}; ["int","pos","exc"].forEach(function(k){ nb[k]=ACTU.add[k].filter(function(a){return a.on;}).length; });
     var note=ACTU.meta.N.length+" nouvel(s) exemple(s) intégré(s), "+(ACTU.meta.N.length+ACTU.meta.A.length)+" emails relus — "+
-      "+"+nb.lex+" champ(s) lexical(aux), +"+nb.int+" intention(s), +"+nb.pos+" exemple(s)"+(nb.exc?", +"+nb.exc+" exception(s)":"")+
+      "+"+nb.lex+" terme(s) lexical(aux), +"+nb.int+" intention(s), +"+nb.pos+" exemple(s)"+(nb.exc?", +"+nb.exc+" exception(s)":"")+
       (ACTU.useObj?", objectif enrichi":"")+(ACTU.manual?", retouché à la main":"");
     var changed=setDescription(it,nv,"actualisation",note);
     var vn=vCur(it);
@@ -1037,27 +1125,31 @@
     });
   });
 
-  /* ---------- recette globale ---------- */
+  /* ---------- recette globale & imports en masse, historisés ---------- */
+  var DATA_URL="/.netlify/functions/automail-data";
+  var IMPORTS=[], RECS={}, RUNNING=null;   // RUNNING : import en cours d'analyse dans cette page
+
   $("b-gtest").addEventListener("click",function(){
     var raw=($("g-email").value||"").trim();
     if(!raw){ $("gmsg").innerHTML='<div class="notice err">Saisissez au moins un email.</div>'; return; }
     var emails=raw.split(/\n-{3,}\n/).map(function(s){return s.trim();}).filter(Boolean);
     $("gmsg").innerHTML=""; $("gres").innerHTML="";
-    runBatch(emails,null,$("gprog"),$("gfill"),$("gstat"),$("gres"));
+    if(emails.length===1){ runSingle(emails[0]); return; }
+    startBatch({nom:"Recette — "+emails.length+" emails",source:"recette",emails:emails,attendus:null},$("gprog"),$("gfill"),$("gstat"),$("gres"));
   });
-  function runBatch(emails,expected,prog,fill,stat,out){
-    prog.hidden=false; out.innerHTML="";
-    var results=[],i=0, cat=slim();
-    function next(){
-      if(i>=emails.length){ prog.hidden=true; renderBatch(results,out,!!expected); return; }
-      fill.style.width=Math.round(i/emails.length*100)+"%";
-      stat.textContent="Analyse "+(i+1)+"/"+emails.length+"…";
-      ai({action:"match_all",email:emails[i],intentions:cat})
-        .then(function(j){ results.push({email:emails[i],r:j,att:expected?expected[i]:null}); })
-        .catch(function(e){ results.push({email:emails[i],err:e.message,att:expected?expected[i]:null}); })
-        .then(function(){ i++; next(); });
-    }
-    next();
+  // un seul email saisi à la main : la proposition s'ouvre directement, sans historique
+  function runSingle(email){
+    var out=$("gres"); $("gprog").hidden=false; $("gfill").style.width="45%"; $("gstat").textContent="Analyse…";
+    ai({action:"match_all",email:email,intentions:slim()})
+      .then(function(j){ out.innerHTML=detBlock(email,j,null,null); })
+      .catch(function(e){ out.innerHTML='<div class="notice err">Analyse impossible : '+esc(e.message)+'</div>'; })
+      .then(function(){ $("gprog").hidden=true; });
+  }
+
+  function newId(){ return "imp-"+new Date().toISOString().replace(/[-:T]/g,"").slice(0,14)+"-"+Math.random().toString(36).slice(2,7); }
+  function impPost(body){
+    return fetch(DATA_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+      .then(function(r){ return r.json().then(function(j){ if(!r.ok||j.error) throw new Error(j.error||("erreur "+r.status)); return j; }); });
   }
   function listOf(r){ return r?(Array.isArray(r.intentions)?r.intentions:(r.intention_id?[{intention_id:r.intention_id,confiance:r.confiance,extrait:"",justification:r.justification}]:[])):[]; }
   function detIds(x){ return listOf(x.r).map(function(y){return y.intention_id;}); }
@@ -1076,59 +1168,168 @@
     if(hit) return {c:"p",t:"◐",title:"partiellement conforme"};
     return {c:"n",t:"✗"};
   }
-  var BATCH=[];
+  // résultats exploitables, chacun rattaché à son email
+  function rowsOf(rec){
+    var out=[];
+    for(var k=0;k<rec.resultats.length;k++){ var x=rec.resultats[k]; if(!x) continue;
+      out.push({k:k,email:rec.emails[k],r:x.r||null,err:x.err||null,att:rec.attendus?rec.attendus[k]:null}); }
+    return out;
+  }
+  function hasExp(rec){ return !!(rec.attendus&&rec.attendus.some(Boolean)); }
+  function resumeOf(rec){
+    var rs=rowsOf(rec), we=hasExp(rec);
+    return { nAny:rs.filter(function(x){return detIds(x).length;}).length,
+             nMulti:rs.filter(function(x){return detIds(x).length>1;}).length,
+             nNc:rs.filter(function(x){return x.r&&(x.r.demandes_non_couvertes||[]).length;}).length,
+             nErr:rs.filter(function(x){return x.err;}).length,
+             nOk:we?rs.filter(function(x){ var c=conformite(x.att,detIds(x)); return c&&c.ok; }).length:null,
+             nExp:we?rs.filter(function(x){return attendus(x.att).length;}).length:null };
+  }
+  // Sauvegarde après chaque email analysé, jamais deux envois simultanés pour un même import.
+  function flusher(rec){
+    var sent=rec.resultats.length, chain=Promise.resolve(), warned=false;
+    return function(force){
+      chain=chain.then(function(){
+        var from=sent, delta=rec.resultats.slice(from);
+        if(!delta.length&&!force) return;
+        sent=rec.resultats.length;
+        return impPost({action:"import_save",id:rec.id,resultats_from:from,resultats:delta,statut:rec.statut,traites:rec.traites,resume:resumeOf(rec)})
+          .catch(function(){ sent=from; if(!warned){ warned=true; toast("Historique des imports : sauvegarde impossible pour l'instant"); } });
+      });
+      return chain;
+    };
+  }
+  function startBatch(meta,prog,fill,stat,out){
+    var rec={id:newId(),cree:nowIso(),nom:meta.nom,source:meta.source,emails:meta.emails,attendus:meta.attendus,resultats:[],traites:{},statut:"en cours"};
+    RECS[rec.id]=rec;
+    impPost({action:"import_save",id:rec.id,meta:{cree:rec.cree,nom:rec.nom,source:rec.source,emails:rec.emails,attendus:rec.attendus},statut:"en cours",resume:{}})
+      .then(loadImports)
+      .catch(function(){ toast("Historique indisponible : cet import ne sera pas conservé après un rechargement"); });
+    runRec(rec,prog,fill,stat,out);
+  }
+  function runRec(rec,prog,fill,stat,out){
+    if(RUNNING){ toast("Une analyse est déjà en cours dans cette page"); return; }
+    RUNNING=rec.id; rec.statut="en cours"; prog.hidden=false; out.innerHTML=""; renderImports();
+    var flush=flusher(rec), cat=slim(), n=rec.emails.length;
+    function next(){
+      var i=rec.resultats.length;
+      if(i>=n){
+        RUNNING=null; prog.hidden=true; rec.statut="terminé";
+        flush(true).then(loadImports); renderRec(rec,out); return;
+      }
+      fill.style.width=Math.round(i/n*100)+"%";
+      stat.textContent="Analyse "+(i+1)+"/"+n+"… — enregistrée au fur et à mesure : un rechargement de la page ne fait pas tout perdre";
+      ai({action:"match_all",email:rec.emails[i],intentions:cat})
+        .then(function(j){ rec.resultats.push({r:j}); })
+        .catch(function(e){ rec.resultats.push({err:e.message}); })
+        .then(function(){ flush(false); next(); });
+    }
+    next();
+  }
+
   function chips(x){
     if(x.err) return '<span class="vd n">erreur</span><div style="font-size:.76rem;color:var(--slate)">'+esc(x.err)+'</div>';
     var l=listOf(x.r);
     var h=l.length?l.map(function(y,k){ return '<span class="ich'+(k===0?' p1':'')+'"><b>'+esc(nameOf(y.intention_id))+'</b><small>'+y.confiance+'%</small></span>'; }).join("")
                  :'<span class="vd n">aucun match</span>';
     if(l.length>1) h='<span class="badge b-multi" style="margin-bottom:4px">multi</span><br>'+h;
-    (x.r.demandes_non_couvertes||[]).forEach(function(nc){ h+='<div class="ncm">＋ non couvert : '+esc(nc)+'</div>'; });
+    ((x.r&&x.r.demandes_non_couvertes)||[]).forEach(function(nc){ h+='<div class="ncm">＋ non couvert : '+esc(nc)+'</div>'; });
     return h;
   }
-  function renderBatch(results,out,withExpected){
-    BATCH=results;
-    // un seul email saisi à la main : on ouvre directement la proposition
-    if(results.length===1&&!withExpected){
-      var x=results[0];
-      out.innerHTML=x.err?'<div class="notice err">Analyse impossible : '+esc(x.err)+'</div>':detBlock(x.email,x.r,null);
-      return;
-    }
-    var nAny=results.filter(function(x){return detIds(x).length;}).length;
-    var nMulti=results.filter(function(x){return detIds(x).length>1;}).length;
-    var nNc=results.filter(function(x){return x.r&&(x.r.demandes_non_couvertes||[]).length;}).length;
-    var nOk=withExpected?results.filter(function(x){ var c=conformite(x.att,detIds(x)); return c&&c.ok; }).length:0;
-    var nExp=withExpected?results.filter(function(x){return attendus(x.att).length;}).length:0;
-    var h='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px">'+
-      '<b>'+results.length+' email'+(results.length>1?"s":"")+' analysé'+(results.length>1?"s":"")+'</b>'+
-      '<span class="badge b-ok">'+nAny+' avec au moins une intention</span>'+
-      '<span class="badge b-multi">'+nMulti+' multi-intention</span>'+
-      (nNc?'<span class="badge b-new">'+nNc+' avec une demande non couverte</span>':'')+
-      (withExpected?'<span class="badge b-ex">'+nOk+' / '+nExp+' conformes à l\'attendu</span>':'')+'</div>';
-    h+='<div class="tw"><table class="t"><thead><tr><th>Email</th><th>Intentions détectées</th>'+
-       (withExpected?'<th>Attendu</th><th style="width:58px">OK</th>':'')+'<th style="width:96px"></th></tr></thead><tbody>';
-    results.forEach(function(x,k){
-      var cf=withExpected?conformite(x.att,detIds(x)):null;
-      h+='<tr><td class="em">'+esc(x.email.slice(0,220))+(x.email.length>220?"…":"")+'</td><td>'+chips(x)+'</td>'+
-         (withExpected?'<td style="font-size:.82rem">'+esc(x.att||"—")+'</td><td>'+(cf?'<span class="vd '+cf.c+'" title="'+esc(cf.title||"")+'">'+cf.t+'</span>':'')+'</td>':'')+
-         '<td><button class="btn g" data-open="'+k+'">Traiter</button></td></tr>'+
-         '<tr data-row="'+k+'" style="display:none"><td colspan="'+(withExpected?5:3)+'" data-cell="'+k+'"></td></tr>';
+  function doneHtml(t){
+    return '<div class="det"><div class="det-done">✓ Déjà traité le '+esc(fdate(t.quand))+' — '+
+      (t.ids&&t.ids.length?t.ids.map(function(id){return esc(nameOf(id));}).join(" + "):"aucune intention retenue")+'</div>'+
+      '<div style="margin-top:8px"><button class="btn g s" data-redo="1">Traiter à nouveau</button></div></div>';
+  }
+  function renderRec(rec,out){
+    RECS[rec.id]=rec;
+    var rs=rowsOf(rec), we=hasExp(rec), s=resumeOf(rec), n=rec.emails.length, nT=Object.keys(rec.traites||{}).length;
+    var h='<div class="bhead"><div><span class="bname">'+esc(rec.nom)+'</span> <span class="iid">· '+esc(fdate(rec.cree))+'</span></div>'+
+      (rs.length<n&&RUNNING!==rec.id?'<div class="notice warn" style="margin-top:8px">Import interrompu : '+rs.length+' / '+n+' emails analysés. '+
+        '<button class="btn s up" data-resume="'+esc(rec.id)+'">Reprendre l\'analyse</button></div>':'')+'</div>';
+    h+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px">'+
+      '<b>'+rs.length+' email'+(rs.length>1?"s":"")+' analysé'+(rs.length>1?"s":"")+'</b>'+
+      '<span class="badge b-ok">'+s.nAny+' avec au moins une intention</span>'+
+      '<span class="badge b-multi">'+s.nMulti+' multi-intention</span>'+
+      (s.nNc?'<span class="badge b-new">'+s.nNc+' avec une demande non couverte</span>':'')+
+      (we?'<span class="badge b-ex">'+s.nOk+' / '+s.nExp+' conformes à l\'attendu</span>':'')+
+      '<span class="badge b-ex">'+nT+' / '+rs.length+' traité'+(nT>1?"s":"")+'</span></div>';
+    h+='<div class="tw"><table class="t"><thead><tr><th style="width:34px">#</th><th>Email</th><th>Intentions détectées</th>'+
+       (we?'<th>Attendu</th><th style="width:58px">OK</th>':'')+'<th style="width:104px"></th></tr></thead><tbody>';
+    rs.forEach(function(x){
+      var cf=we?conformite(x.att,detIds(x)):null, t=rec.traites&&rec.traites[x.k];
+      h+='<tr><td class="iid">'+(x.k+1)+'</td><td class="em">'+esc(x.email.slice(0,220))+(x.email.length>220?"…":"")+'</td><td>'+chips(x)+'</td>'+
+         (we?'<td style="font-size:.82rem">'+esc(x.att||"—")+'</td><td>'+(cf?'<span class="vd '+cf.c+'" title="'+esc(cf.title||"")+'">'+cf.t+'</span>':'')+'</td>':'')+
+         '<td><button class="btn g" data-open="'+x.k+'">'+(t?"✓ Traité":"Traiter")+'</button></td></tr>'+
+         '<tr data-row="'+x.k+'" style="display:none"><td colspan="'+(we?6:4)+'" data-cell="'+x.k+'"></td></tr>';
     });
     h+='</tbody></table></div>';
     out.innerHTML=h;
     out.querySelectorAll("[data-open]").forEach(function(btn){
       btn.addEventListener("click",function(){
-        var k=+btn.getAttribute("data-open"), tr=out.querySelector('[data-row="'+k+'"]');
+        var k=+btn.getAttribute("data-open"), tr=out.querySelector('[data-row="'+k+'"]'), cell=out.querySelector('[data-cell="'+k+'"]');
         if(tr.style.display==="none"){
           if(!tr.getAttribute("data-built")){
-            var x=BATCH[k];
-            out.querySelector('[data-cell="'+k+'"]').innerHTML=x.err?'<div class="notice err">'+esc(x.err)+'</div>':detBlock(x.email,x.r,btn);
+            var x=rowsOf(rec).filter(function(y){return y.k===k;})[0], t=rec.traites&&rec.traites[k];
+            var fresh=function(){ cell.innerHTML=x.err?'<div class="notice err">'+esc(x.err)+'</div>':detBlock(x.email,x.r,btn,{rec:rec,k:k}); };
+            if(t){ cell.innerHTML=doneHtml(t); cell.querySelector("[data-redo]").addEventListener("click",fresh); } else fresh();
             tr.setAttribute("data-built","1");
           }
-          tr.style.display=""; if(btn.textContent==="Traiter") btn.textContent="Fermer";
-        } else { tr.style.display="none"; if(btn.textContent==="Fermer") btn.textContent="Traiter"; }
+          tr.style.display="";
+        } else tr.style.display="none";
       });
     });
+  }
+  // marque une ligne comme traitée dans l'import, sur le serveur
+  function markTraite(ctx,ids){
+    if(!ctx||!ctx.rec) return;
+    ctx.rec.traites=ctx.rec.traites||{};
+    ctx.rec.traites[ctx.k]={quand:nowIso(),ids:ids};
+    impPost({action:"import_save",id:ctx.rec.id,traites:ctx.rec.traites,resume:resumeOf(ctx.rec)}).then(loadImports).catch(function(){});
+  }
+
+  /* ---------- liste des imports précédents ---------- */
+  function loadImports(){
+    return fetch(DATA_URL+"?imports=1",{cache:"no-store"}).then(function(r){return r.json();})
+      .then(function(j){ IMPORTS=j.imports||[]; renderImports(); })
+      .catch(function(){ var b=$("ihist"); if(b) b.innerHTML='<p class="empty">Historique indisponible (fonction automail-data non déployée ?).</p>'; });
+  }
+  function renderImports(){
+    var box=$("ihist"); if(!box) return;
+    if(!IMPORTS.length){ box.innerHTML='<p class="empty">Aucun import pour l\'instant. Chaque import en masse, et chaque recette de plusieurs emails, sera conservé ici.</p>'; return; }
+    box.innerHTML='<div class="tw"><table class="t"><thead><tr><th style="width:120px">Date</th><th>Import</th><th style="width:86px">Analysés</th>'+
+      '<th style="width:64px">Multi</th><th style="width:96px">Conformes</th><th style="width:78px">Traités</th><th style="width:96px">Statut</th><th style="width:220px"></th></tr></thead><tbody>'+
+      IMPORTS.map(function(x){
+        var r=x.resume||{}, run=RUNNING===x.id, inter=x.faits<x.total&&!run;
+        var st=run?'<span class="badge b-new">en cours</span>':(inter?'<span class="badge b-new">interrompu</span>':'<span class="badge b-ok">terminé</span>');
+        return '<tr><td class="iid">'+esc(fdate(x.cree))+'</td><td><b>'+esc(x.nom)+'</b>'+(x.source==="recette"?' <span class="iid">· recette</span>':'')+'</td>'+
+          '<td>'+x.faits+' / '+x.total+'</td><td>'+(r.nMulti!=null?r.nMulti:"—")+'</td>'+
+          '<td>'+(r.nExp?r.nOk+' / '+r.nExp:'—')+'</td><td>'+(x.traites||0)+'</td><td>'+st+'</td>'+
+          '<td><button class="btn s" data-iopen="'+esc(x.id)+'">Ouvrir</button> '+
+          (inter?'<button class="btn s up" data-resume="'+esc(x.id)+'">Reprendre</button> ':'')+
+          '<button class="btn s g d" data-idel="'+esc(x.id)+'" title="Supprimer cet import de l\'historique">✕</button></td></tr>';
+      }).join("")+'</tbody></table></div>';
+  }
+  function fetchImport(id){
+    if(RECS[id]) return Promise.resolve(RECS[id]);
+    return fetch(DATA_URL+"?import="+encodeURIComponent(id),{cache:"no-store"}).then(function(r){return r.json();})
+      .then(function(rec){ if(!rec||rec.error) throw new Error((rec&&rec.error)||"introuvable"); rec.traites=rec.traites||{}; rec.resultats=rec.resultats||[]; RECS[id]=rec; return rec; });
+  }
+  function showIo(){ $("t-io").click(); }
+  function openImport(id){
+    fetchImport(id).then(function(rec){ showIo(); $("bmsg").innerHTML=""; renderRec(rec,$("bres")); $("bres").scrollIntoView({behavior:"smooth",block:"start"}); })
+      .catch(function(e){ toast("Ouverture impossible : "+e.message); });
+  }
+  function resumeImport(id){
+    if(RUNNING){ toast("Une analyse est déjà en cours dans cette page"); return; }
+    fetchImport(id).then(function(rec){ showIo(); $("bmsg").innerHTML=""; runRec(rec,$("bprog"),$("bfill"),$("bstat"),$("bres")); })
+      .catch(function(e){ toast("Reprise impossible : "+e.message); });
+  }
+  function deleteImport(id){
+    if(RUNNING===id){ toast("Impossible pendant l'analyse"); return; }
+    if(!confirm("Supprimer cet import de l'historique ?\nLes exemples déjà validés à partir de cet import sont conservés.")) return;
+    impPost({action:"import_delete",id:id}).then(function(){ delete RECS[id]; loadImports(); toast("Import supprimé de l'historique"); })
+      .catch(function(e){ toast("Suppression impossible : "+e.message); });
   }
 
   /* ---------- modèle Excel ---------- */
@@ -1189,7 +1390,7 @@
     }catch(e){ $("bmsg").innerHTML='<div class="notice err">Lecture impossible : '+esc(e.message)+'</div>'; return; }
     if(!emails.length){ $("bmsg").innerHTML='<div class="notice err">Aucun email trouvé. Vérifiez que les emails sont en colonne A.</div>'; return; }
     var hasAtt=att.some(Boolean);
-    runBatch(emails,hasAtt?att:null,$("bprog"),$("bfill"),$("bstat"),$("bres"));
+    startBatch({nom:f.name,source:"import",emails:emails,attendus:hasAtt?att:null},$("bprog"),$("bfill"),$("bstat"),$("bres"));
   }
 
   /* ---------- exports ---------- */
@@ -1272,6 +1473,7 @@
 
   /* ---------- init ---------- */
   load();
+  loadImports();
   try{fetch("/.netlify/functions/track",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tool:"auto-mail"})}).catch(function(){});}catch(e){}
 })();
 </script>

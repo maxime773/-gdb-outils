@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- OUTIL
      titre: Auto Mail — atelier des intentions
-     description: Teste et affine les business descriptions de détection d'intention à partir d'emails clients réels.
+     description: Teste et affine les business descriptions : détection multi-intention, actualisation des prompts par les exemples, historique des versions.
      categorie: DATA
      ia: oui
 -->
@@ -20,14 +20,19 @@
   .pane{display:none}
   .pane.on{display:block}
 
-  .savebar{display:flex;align-items:center;gap:10px;margin-top:14px;font-family:var(--mono);font-size:11.5px;color:var(--slate)}
+  .savebar{display:flex;align-items:center;gap:10px;margin-top:14px;font-family:var(--mono);font-size:11.5px;color:var(--slate);flex-wrap:wrap}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
   .dot.wait{background:var(--signal)}
   .dot.err{background:#B3261E}
+  .conflict{margin-top:12px;background:#FBE9E7;border:1px solid #F3C7C2;border-left:4px solid #B3261E;border-radius:var(--radius);padding:12px 16px;font-size:.88rem;color:#5F1A15}
+  .conflict.hidden{display:none}
+  .conflict b{display:block;margin-bottom:4px;color:#8C1D18}
+  .conflict .btn{margin-top:8px;margin-right:6px}
 
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}
   .st{background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:13px 15px;border-left:4px solid var(--steel)}
   .st.acc{border-left-color:var(--signal)}
+  .st.ok{border-left-color:var(--ok)}
   .st .l{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate)}
   .st .v{font-size:1.5rem;font-weight:800;margin-top:4px;line-height:1}
   @media(max-width:700px){.stats{grid-template-columns:1fr 1fr}}
@@ -36,15 +41,19 @@
   .ihead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
   .iname{font-size:1.05rem;font-weight:700;color:var(--steel)}
   .iid{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:2px}
-  .iacts{display:flex;gap:6px;flex-wrap:wrap}
+  .iacts{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .btn{font-family:var(--sans);font-size:.85rem;font-weight:600;padding:8px 13px;border-radius:var(--radius);border:1px solid var(--line-2);background:#fff;color:var(--ink);cursor:pointer}
   .btn:hover{border-color:var(--steel)}
   .btn.p{background:var(--steel);color:var(--paper);border-color:var(--steel)}
   .btn.a{background:var(--signal);color:#fff;border-color:var(--signal)}
+  .btn.up{border-color:var(--signal);color:#9A4E00;background:var(--signal-soft)}
+  .btn.up:hover{background:#F9DDBD}
   .btn.g{background:transparent;color:var(--slate);border-color:transparent}
   .btn.g:hover{background:var(--paper-2);color:var(--ink)}
   .btn.d:hover{color:#B3261E;border-color:#B3261E}
+  .btn.s{padding:5px 9px;font-size:.78rem}
   .btn:disabled{opacity:.45;cursor:not-allowed}
+  .cnt{display:inline-block;margin-left:6px;background:var(--signal);color:#fff;border-radius:999px;font-size:10.5px;font-family:var(--mono);padding:1px 7px;font-weight:700}
 
   .prev{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
   @media(max-width:700px){.prev{grid-template-columns:1fr}}
@@ -55,6 +64,8 @@
   .badge{display:inline-block;font-family:var(--mono);font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:999px}
   .b-ok{color:var(--ok);background:var(--ok-soft)}
   .b-ex{color:var(--steel);background:#E4ECF4}
+  .b-new{color:#9A4E00;background:var(--signal-soft)}
+  .b-multi{color:#5B2A86;background:#EFE6F7}
 
   textarea,input[type=text],select{width:100%;padding:11px 12px;border:1px solid var(--line-2);border-radius:var(--radius);font-family:var(--sans);font-size:.92rem;color:var(--ink);background:#fff}
   textarea{resize:vertical;line-height:1.55}
@@ -79,8 +90,29 @@
   .acts .at{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--signal);margin-bottom:10px;font-weight:700}
   .opt{display:flex;align-items:flex-start;gap:9px;padding:7px 0;cursor:pointer;font-size:.9rem}
   .opt input{margin-top:3px;width:16px;height:16px;accent-color:var(--steel);flex:none}
+  .opt small{color:var(--slate)}
   .sub{margin:4px 0 4px 26px;padding-left:12px;border-left:2px solid var(--line-2)}
   .sub.hidden{display:none}
+
+  /* ---- détection multi-intention ---- */
+  .det{margin-top:14px;background:#fff;border:1px solid var(--line-2);border-radius:var(--radius);padding:14px 16px}
+  .det-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;color:var(--steel)}
+  .det-syn{font-size:.86rem;color:var(--slate);margin-top:4px}
+  .det-r{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line)}
+  .det-r.off{opacity:.45}
+  .det-k{display:flex;align-items:center;gap:8px;padding-top:9px;cursor:pointer}
+  .det-k input{width:16px;height:16px;accent-color:var(--steel)}
+  .det-n{font-family:var(--mono);font-size:11px;color:#fff;background:var(--steel);border-radius:6px;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center}
+  .det-m{flex:1;min-width:0}
+  .det-m select{max-width:440px}
+  .det-x{margin-top:7px;font-size:.88rem;font-style:italic;color:#2A3846;background:var(--paper);border-left:3px solid var(--signal);padding:6px 10px;border-radius:0 6px 6px 0}
+  .det-j{margin-top:5px;font-size:.8rem;color:var(--slate)}
+  .det-chg{display:inline-block;margin-top:6px;font-size:.78rem;color:#9A4E00}
+  .det-c{font-family:var(--mono);font-size:11.5px;font-weight:700;padding-top:10px;white-space:nowrap}
+  .det-c.hi{color:var(--ok)}.det-c.md{color:#9A6B00}.det-c.lo{color:#B3261E}.det-c.man{color:var(--slate);font-weight:600}
+  .det-nc{margin-top:12px;background:#FFF8EC;border:1px dashed #E8B96B;border-radius:var(--radius);padding:10px 12px;font-size:.86rem;color:#6B4A0F}
+  .det-f{margin-top:12px}
+  .det-done{font-size:.9rem;color:var(--ok);font-weight:700}
 
   table.t{width:100%;border-collapse:collapse;font-size:.86rem;background:#fff}
   .tw{border:1px solid var(--line-2);border-radius:var(--radius);overflow:hidden;margin-top:14px}
@@ -88,7 +120,15 @@
   table.t td{padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:top}
   table.t tr:last-child td{border-bottom:none}
   td.em{font-style:italic;color:#333;max-width:340px}
-  .vd{font-weight:700}.vd.y{color:var(--ok)}.vd.n{color:#B3261E}
+  .vd{font-weight:700}.vd.y{color:var(--ok)}.vd.n{color:#B3261E}.vd.p{color:#9A6B00}
+  .ich{display:inline-flex;align-items:center;gap:6px;background:#EEF3F8;border:1px solid #D7E2EC;border-radius:999px;padding:3px 10px;margin:0 4px 4px 0;font-size:.8rem}
+  .ich b{font-weight:700;color:var(--steel)}
+  .ich.p1{background:#E4ECF4;border-color:#BFD0E2}
+  .ich small{font-family:var(--mono);color:var(--slate)}
+  .ncm{font-size:.76rem;color:#9A6B00;margin-top:2px}
+  details.full{margin-top:5px;font-size:.78rem;color:var(--slate)}
+  details.full summary{cursor:pointer}
+  details.full div{white-space:pre-wrap;font-style:normal;color:#333;margin-top:4px}
 
   .drop{border:2px dashed var(--line-2);border-radius:var(--radius);padding:30px 20px;text-align:center;cursor:pointer;background:#fff}
   .drop:hover{border-color:var(--signal);background:var(--signal-soft)}
@@ -98,21 +138,60 @@
 
   .ov{position:fixed;inset:0;background:rgba(11,58,103,.55);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
   .ov.hidden{display:none}
-  .md{background:#fff;border-radius:10px;max-width:880px;width:100%;max-height:90vh;overflow-y:auto}
+  .md{background:#fff;border-radius:10px;max-width:880px;width:100%;max-height:92vh;overflow-y:auto}
+  .md.wide{max-width:1040px}
   .mh{padding:18px 22px;border-bottom:1px solid var(--line-2);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff;z-index:5}
   .mt{font-size:1.1rem;font-weight:700;color:var(--steel)}
+  .ms{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:3px}
   .mb{padding:20px 22px}
-  .mf{padding:16px 22px;border-top:1px solid var(--line-2);display:flex;justify-content:flex-end;gap:8px;background:var(--paper)}
+  .mf{padding:16px 22px;border-top:1px solid var(--line-2);display:flex;justify-content:flex-end;gap:8px;background:var(--paper);position:sticky;bottom:0}
   .x{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--slate);line-height:1}
 
-  .diff{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;font-family:var(--mono);font-size:11.5px;line-height:1.6;white-space:pre-wrap;max-height:260px;overflow-y:auto}
-  .sumbox{background:var(--signal-soft);border:1px solid #F0D3B4;border-radius:var(--radius);padding:12px 14px;font-size:.88rem;color:#8A4B12;margin-bottom:14px;white-space:pre-wrap}
+  .diff{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:10px 0;font-family:var(--mono);font-size:11.5px;line-height:1.55;max-height:340px;overflow-y:auto}
+  .dl{white-space:pre-wrap;padding:0 12px}
+  .dl.add{background:#E3F1EA;color:#145C3D}
+  .dl.del{background:#FBE9E7;color:#8C1D18;text-decoration:line-through;text-decoration-color:rgba(140,29,24,.4)}
+  .plain{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;font-family:var(--mono);font-size:11.5px;line-height:1.6;white-space:pre-wrap;max-height:340px;overflow-y:auto}
+  .sumbox{background:var(--signal-soft);border:1px solid #F0D3B4;border-radius:var(--radius);padding:12px 14px;font-size:.88rem;color:#7A3F0A;margin-bottom:14px;white-space:pre-wrap;line-height:1.55}
+  .warnbox{background:#FFF4E5;border:1px solid #F2C98A;border-left:4px solid #D98A00;border-radius:var(--radius);padding:12px 14px;font-size:.88rem;color:#5E3B00;margin-bottom:14px}
+  .warnbox b{display:block;margin-bottom:6px}
+  .warnbox ul{margin:0;padding-left:18px}.warnbox li{margin-bottom:4px;line-height:1.5}
+
+  /* ---- actualisation ---- */
+  .ax{border:1px solid var(--line-2);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+  .ax-h{background:var(--paper);padding:10px 14px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+  .ax-t{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--steel);font-weight:700}
+  .ax-s{font-size:.8rem;color:var(--slate)}
+  .ax-b{padding:10px 14px}
+  .ax-keep{font-size:.8rem;color:var(--slate)}
+  .ax-keep summary{cursor:pointer;margin-bottom:6px}
+  .ax-keep pre{margin:0;font-family:var(--mono);font-size:11px;white-space:pre-wrap;color:#33414F;background:var(--paper);padding:8px 10px;border-radius:6px}
+  .ax-add{display:flex;gap:9px;align-items:flex-start;padding:5px 0;font-size:.88rem;cursor:pointer}
+  .ax-add input{margin-top:3px;width:15px;height:15px;accent-color:var(--ok);flex:none}
+  .ax-add span{font-family:var(--mono);font-size:12px;color:#145C3D;background:#E3F1EA;padding:2px 7px;border-radius:5px;line-height:1.5}
+  .ax-add.sug span{color:#7A3F0A;background:var(--signal-soft)}
+  .ax-none{font-size:.82rem;color:var(--slate);font-style:italic}
+  .obj{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:760px){.obj{grid-template-columns:1fr}}
+  .obj div{font-size:.86rem;line-height:1.55;padding:10px 12px;border-radius:6px}
+  .obj .o1{background:var(--paper);color:var(--slate)}
+  .obj .o2{background:#E3F1EA;color:#123F2B}
+  .obj .ol{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px;opacity:.8}
+  .dbt{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);font-size:.86rem}
+  .dbt:last-child{border-bottom:none}
+  .dbt em{color:#333}
+  .dbt .why{color:var(--slate);font-size:.8rem;margin-top:3px}
+
+  /* ---- historique ---- */
+  .vcur{font-family:var(--mono);font-size:10px;color:var(--ok);font-weight:700}
 
   .toast{position:fixed;bottom:22px;right:22px;background:var(--steel);color:var(--paper);padding:12px 18px;border-radius:var(--radius);font-size:.9rem;z-index:1000;box-shadow:0 10px 28px -12px rgba(0,0,0,.5)}
   .toast.hidden{display:none}
   .ai-note{font-family:var(--mono);font-size:11px;color:var(--slate);margin-top:18px;display:flex;align-items:center;gap:8px}
   .ai-note .d{width:7px;height:7px;border-radius:50%;background:var(--signal);flex:none}
   .empty{color:var(--slate);font-size:.9rem;padding:16px 0}
+  .sec{font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--steel);margin:24px 0 4px}
+  .sec-sub{font-size:.85rem;color:var(--slate)}
 </style>
 </head>
 <body>
@@ -122,10 +201,16 @@
   <section class="tool-hero">
     <span class="eyebrow">DATA · 04</span>
     <h1>Auto Mail — atelier des intentions</h1>
-    <p>Testez de vrais emails clients contre vos business descriptions, validez ou corrigez chaque détection, et laissez les prompts s'affiner au fil des tests. Tout le travail est enregistré sur le serveur.</p>
+    <p>Testez de vrais emails clients contre vos business descriptions, validez ou corrigez chaque détection — y compris quand un email contient plusieurs demandes — et faites progresser les prompts à partir des exemples accumulés. Chaque version est conservée.</p>
   </section>
 
   <div class="savebar"><span class="dot" id="sdot"></span><span id="stext">Chargement du référentiel…</span></div>
+  <div class="conflict hidden" id="conflict">
+    <b>Le référentiel a été modifié depuis un autre poste ou un autre onglet.</b>
+    Pour ne pas écraser ce travail, vos dernières modifications n'ont pas été enregistrées.
+    Téléchargez-les pour ne rien perdre, puis rechargez la page.<br>
+    <button class="btn" id="cf-dl">⬇ Télécharger mes modifications</button><button class="btn p" id="cf-rl">Recharger la page</button>
+  </div>
 
   <div class="tabs">
     <button class="tab on" id="t-int">Intentions</button>
@@ -147,7 +232,7 @@
   <!-- ============ RECETTE GLOBALE ============ -->
   <div class="pane" id="p-rec">
     <div class="panel" style="margin-top:18px">
-      <div class="panel-strip"><span class="k">RECETTE</span> l'email est confronté à toutes les intentions</div>
+      <div class="panel-strip"><span class="k">RECETTE</span> l'email est confronté à toutes les intentions — toutes ses demandes sont repérées</div>
       <div class="panel-body">
         <div class="fg">
           <label class="fl" for="g-email">Email client à analyser</label>
@@ -164,7 +249,8 @@
 
   <!-- ============ BASE D'EXEMPLES ============ -->
   <div class="pane" id="p-base">
-    <p style="margin-top:18px;color:var(--slate);font-size:.92rem">Chaque exemple validé est réinjecté dans le prompt lors des tests suivants : plus la base grandit, plus la détection se stabilise.</p>
+    <p style="margin-top:18px;color:var(--slate);font-size:.92rem">Chaque exemple validé est réinjecté dans les tests suivants. Les exemples marqués <span class="badge b-new">nouveau</span> n'ont pas encore servi à actualiser le prompt de leur intention.</p>
+    <div id="combos"></div>
     <div id="blist"></div>
   </div>
 
@@ -173,10 +259,10 @@
     <div class="panel" style="margin-top:18px">
       <div class="panel-strip"><span class="k">IMPORT</span> test en masse depuis un fichier</div>
       <div class="panel-body">
-        <p style="font-size:.9rem;color:var(--slate);margin-bottom:14px">Téléchargez le modèle, remplissez-le avec des emails clients anonymisés, puis redéposez-le ici. Chaque email sera confronté à toutes les intentions.</p>
+        <p style="font-size:.9rem;color:var(--slate);margin-bottom:14px">Téléchargez le modèle, remplissez-le avec des emails clients anonymisés, puis redéposez-le ici. Chaque email est confronté à toutes les intentions. Pour un email qui contient plusieurs demandes, indiquez les intentions attendues séparées par « + ».</p>
         <button class="btn a" id="b-tpl">⬇ Télécharger le modèle Excel</button>
         <div class="drop" id="drop" tabindex="0" role="button" style="margin-top:16px">
-          <div class="di">📄</div><div class="dt">Glissez le fichier rempli</div><div class="dh">.xlsx ou .csv — colonne A : email client · colonne B (facultatif) : intention attendue</div>
+          <div class="di">📄</div><div class="dt">Glissez le fichier rempli</div><div class="dh">.xlsx ou .csv — colonne A : email client · colonne B (facultatif) : intention(s) attendue(s)</div>
           <input type="file" id="file" accept=".xlsx,.csv" hidden />
         </div>
         <div class="progress" id="bprog" hidden><div class="track"><div class="fill" id="bfill"></div></div><div class="pstatus" id="bstat"></div></div>
@@ -188,14 +274,27 @@
     <div class="panel" style="margin-top:18px">
       <div class="panel-strip"><span class="k">EXPORT</span> sauvegarde et transfert vers la production</div>
       <div class="panel-body">
-        <p style="font-size:.9rem;color:var(--slate);margin-bottom:14px">Exportez le référentiel complet — business descriptions, templates et bases d'exemples — pour le transmettre au prestataire ou en garder une copie.</p>
+        <p style="font-size:.9rem;color:var(--slate);margin-bottom:14px">Exportez le référentiel complet — business descriptions et leurs versions, templates, bases d'exemples, combinaisons multi-intention — pour le transmettre au prestataire ou en garder une copie.</p>
         <button class="btn" id="b-expx">⬇ Export Excel</button>
         <button class="btn" id="b-expj" style="margin-left:8px">⬇ Export JSON</button>
+        <div class="fh" style="margin-top:10px">L'export JSON est la sauvegarde complète : c'est lui qu'on recharge avec « Restaurer » ci-dessous. L'export Excel sert à lire et à transmettre, pas à restaurer.</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:18px">
+      <div class="panel-strip"><span class="k">RESTAURER</span> revenir à une sauvegarde JSON</div>
+      <div class="panel-body">
+        <p style="font-size:.9rem;color:var(--slate);margin-bottom:14px">Remplace tout le référentiel — intentions, versions des prompts, exemples, combinaisons — par le contenu d'un fichier obtenu avec « Export JSON ». Juste avant de remplacer, l'état actuel est téléchargé automatiquement : rien n'est perdu, même en cas d'erreur de fichier.</p>
+        <div class="drop" id="rdrop" tabindex="0" role="button">
+          <div class="di">🗂</div><div class="dt">Choisir une sauvegarde .json</div><div class="dh">par exemple « referentiel-intentions.json »</div>
+          <input type="file" id="rfile" accept=".json,application/json" hidden />
+        </div>
+        <div id="rmsg"></div>
       </div>
     </div>
   </div>
 
-  <div class="ai-note"><span class="d"></span> Le matching est réalisé par un modèle d'IA à partir de vos seules business descriptions. N'utilisez que des emails anonymisés.</div>
+  <div class="ai-note"><span class="d"></span> La détection et l'actualisation des prompts sont réalisées par un modèle d'IA à partir de vos seules business descriptions et de vos exemples. N'utilisez que des emails anonymisés.</div>
 
   <div class="colophon" style="margin-top:26px"><span>Gaz de Bordeaux — DATA · 04</span><span>ExcelJS — embarqué</span></div>
 </div>
@@ -209,7 +308,8 @@
         <input type="text" id="f-name" placeholder="Ex. Information HP/HC" />
         <div class="fh">Sert de valeur à la variable « Intention » renvoyée au moteur d'emails.</div></div>
       <div class="fg"><label class="fl" for="f-desc">Business description (prompt)</label>
-        <textarea id="f-desc" class="mono" rows="14" placeholder="CHAMPS LEXICAUX :&#10;- …&#10;&#10;INTENTIONS À DÉTECTER :&#10;- …&#10;&#10;EXCEPTIONS (ne PAS matcher) :&#10;- …&#10;&#10;EXEMPLES POSITIFS :&#10;- …"></textarea></div>
+        <textarea id="f-desc" class="mono" rows="14" placeholder="Détecter …&#10;&#10;CHAMPS LEXICAUX :&#10;- …&#10;&#10;INTENTIONS À DÉTECTER :&#10;- …&#10;&#10;EXCEPTIONS (ne PAS matcher) :&#10;- …&#10;&#10;EXEMPLES POSITIFS :&#10;- …"></textarea>
+        <div class="fh">Toute modification enregistrée crée une nouvelle version, consultable dans l'historique.</div></div>
       <div class="fg"><label class="fl" for="f-tpl">Template de réponse</label>
         <textarea id="f-tpl" rows="10" placeholder="Bonjour,&#10;&#10;Merci d'avoir pris le temps de nous écrire.&#10;…"></textarea></div>
     </div>
@@ -217,7 +317,7 @@
   </div>
 </div>
 
-<!-- modal affinage -->
+<!-- modal affinage (après une correction) -->
 <div class="ov hidden" id="ref">
   <div class="md">
     <div class="mh"><span class="mt">Évolution proposée des business descriptions</span><button class="x" id="ref-x">×</button></div>
@@ -225,9 +325,26 @@
       <div class="sumbox" id="ref-sum"></div>
       <div class="fg"><label class="fl" id="ref-l1"></label><div class="diff" id="ref-d1"></div></div>
       <div class="fg"><label class="fl" id="ref-l2"></label><div class="diff" id="ref-d2"></div></div>
-      <p style="font-size:.83rem;color:var(--slate)">Relisez avant d'appliquer : ces textes remplaceront les business descriptions actuelles.</p>
+      <p style="font-size:.83rem;color:var(--slate)">En vert ce qui est ajouté, barré en rouge ce qui serait retiré. Les versions actuelles restent récupérables dans l'historique.</p>
     </div>
     <div class="mf"><button class="btn" id="ref-c">Annuler</button><button class="btn p" id="ref-a">Appliquer les modifications</button></div>
+  </div>
+</div>
+
+<!-- modal actualisation du prompt -->
+<div class="ov hidden" id="act">
+  <div class="md wide">
+    <div class="mh"><div><div class="mt" id="act-t">Actualiser le prompt</div><div class="ms" id="act-s"></div></div><button class="x" id="act-x">×</button></div>
+    <div class="mb" id="act-b"></div>
+    <div class="mf"><button class="btn" id="act-c">Annuler</button><button class="btn p" id="act-a">Enregistrer la nouvelle version</button></div>
+  </div>
+</div>
+
+<!-- modal historique -->
+<div class="ov hidden" id="his">
+  <div class="md wide">
+    <div class="mh"><div><div class="mt" id="his-t">Historique</div><div class="ms">Chaque version est conservée. Restaurer une version crée une nouvelle version : rien n'est jamais effacé.</div></div><button class="x" id="his-x">×</button></div>
+    <div class="mb" id="his-b"></div>
   </div>
 </div>
 
@@ -237,8 +354,10 @@
 (function(){
   "use strict";
   var $=function(i){return document.getElementById(i);};
-  var D={intentions:[],version:0};
-  var pendingRefine=null;
+  var D={intentions:[],combinaisons:{},version:0};
+  var pendingRefine=null, conflit=false;
+  var MAXV=30;          // versions conservées par intention (la première est toujours gardée)
+  var CAP_NOUVEAUX=60, CAP_ANCIENS=40;   // emails relus par actualisation
 
   /* ---------- référentiel par défaut (amorçage au premier lancement) ---------- */
   var DEFAULTS=[
@@ -249,16 +368,48 @@
     {id:"ECHE-005",name:"Modifier mon échéancier",description:"Détecter une demande de modification de l'échéancier de paiement (mensualités).\n\nCHAMPS LEXICAUX :\n- \"échéancier\", \"mensualité\", \"mensualités\"\n- \"modifier\", \"changer\", \"ajuster\", \"baisser\", \"augmenter\"\n- \"trop élevé\", \"trop cher\"\n- \"prélèvement mensuel\"\n\nINTENTIONS À DÉTECTER :\n- Le client veut modifier le montant de ses mensualités\n- Le client trouve ses mensualités trop élevées ou trop basses\n\nEXCEPTIONS (ne PAS matcher) :\n- Si le client demande un REMBOURSEMENT → \"Demande de remboursement\"\n- Si le client veut changer la DATE de prélèvement → \"Modification date prélèvement\"\n- Si difficultés financières → \"Difficultés de paiement\"\n\nEXEMPLES POSITIFS :\n- \"Je voudrais modifier mes mensualités\"\n- \"Pouvez-vous baisser mes prélèvements ?\"",template:"Bonjour,\n\nMerci d'avoir pris le temps de nous écrire.\n\nVous pouvez modifier votre échéancier depuis votre espace client, rubrique \"Mes paiements\" > \"Mon échéancier\".\nLa nouvelle mensualité s'applique dès le prochain prélèvement.\n\nCordialement,\nL'équipe Gaz de Bordeaux",exemples:[]},
     {id:"OPTA-006",name:"Changer d'option tarifaire",description:"Détecter une demande de changement d'option tarifaire (passage Base ↔ Heures Pleines/Heures Creuses).\n\nCHAMPS LEXICAUX :\n- \"option tarifaire\", \"changer d'option\", \"passer en base\", \"passer en HP/HC\"\n- \"ne me convient pas\", \"pas adapté\", \"pas rentable\"\n- \"basculer\", \"repasser\"\n\nINTENTIONS À DÉTECTER :\n- Le client veut quitter l'option HP/HC pour l'option Base\n- Le client veut passer de l'option Base à HP/HC\n- Le client estime que son option actuelle n'est pas adaptée à sa consommation\n\nEXCEPTIONS (ne PAS matcher) :\n- Si le client veut seulement CONNAÎTRE ses horaires HP/HC → \"Information HP/HC\"\n- Si le client conteste une facture → \"Réclamation facture\"\n\nEXEMPLES POSITIFS :\n- \"Je souhaite passer en option base\"\n- \"Mes heures creuses ne sont pas rentables, je veux changer d'option\"",template:"Bonjour,\n\nMerci d'avoir pris le temps de nous écrire.\n\nVous souhaitez modifier votre option tarifaire. Cette demande nécessite l'intervention d'un conseiller, qui vérifiera avec vous l'option la plus adaptée à votre consommation.\n\nVotre demande a été transmise, vous serez recontacté sous 48h.\n\nCordialement,\nL'équipe Gaz de Bordeaux",exemples:[]}
   ];
-
   /* ---------- utilitaires ---------- */
   function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
-  function toast(m){var t=$("toast");t.textContent=m;t.classList.remove("hidden");clearTimeout(t._h);t._h=setTimeout(function(){t.classList.add("hidden");},2600);}
+  function toast(m){var t=$("toast");t.textContent=m;t.classList.remove("hidden");clearTimeout(t._h);t._h=setTimeout(function(){t.classList.add("hidden");},3000);}
   function byId(id){return D.intentions.filter(function(x){return x.id===id;})[0]||null;}
+  function nameOf(id){ var i=byId(id); return i?i.name:id; }
   function today(){return new Date().toISOString().slice(0,10);}
+  function nowIso(){return new Date().toISOString();}
+  function fdate(iso){ if(!iso) return "—"; var d=new Date(iso); if(isNaN(d)) return String(iso).slice(0,10);
+    return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+  function norm(s){ return String(s==null?"":s).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().replace(/\s+/g," ").trim(); }
+  function txt(e){ return String((e&&(e.texte||e))||""); }
   function setSave(state,msg){
     var d=$("sdot");d.className="dot"+(state==="wait"?" wait":(state==="err"?" err":""));
     $("stext").textContent=msg;
   }
+  function dl(blob,name){ var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); }
+
+  /* ---------- versions des business descriptions ---------- */
+  var ORIGINES={initiale:"Version de départ",manuel:"Modification manuelle",actualisation:"Actualisation par les exemples",
+                affinage:"Affinage après une correction",restauration:"Restauration"};
+  function ensureVersions(it){
+    if(!Array.isArray(it.versions)||!it.versions.length){
+      it.versions=[{n:1,date:null,description:it.description||"",origine:"initiale",
+                    note:"État du prompt à la mise en place de l'historique",nbExemples:(it.exemples||[]).length}];
+    }
+    return it.versions;
+  }
+  function vCur(it){ var v=ensureVersions(it); return v[v.length-1].n; }
+  // Toute modification de prompt passe par ici : la version précédente est toujours conservée.
+  function setDescription(it,desc,origine,note){
+    desc=String(desc||"").replace(/\s+$/,"");
+    if(desc===String(it.description||"").replace(/\s+$/,"")) return false;
+    var v=ensureVersions(it);
+    if(v[v.length-1].description!==it.description){   // modifié hors historique : on fige d'abord l'état actuel
+      v.push({n:v[v.length-1].n+1,date:nowIso(),description:it.description,origine:"manuel",note:"État constaté avant modification",nbExemples:(it.exemples||[]).length});
+    }
+    v.push({n:v[v.length-1].n+1,date:nowIso(),description:desc,origine:origine,note:note||"",nbExemples:(it.exemples||[]).length});
+    if(v.length>MAXV) v.splice(1,v.length-MAXV);
+    it.description=desc;
+    return true;
+  }
+  function nouveaux(it){ return (it.exemples||[]).filter(function(e){ return !e.integre; }).length; }
 
   /* ---------- persistance ---------- */
   function load(){
@@ -267,57 +418,81 @@
       .then(function(r){return r.json();})
       .then(function(j){
         if(j&&Array.isArray(j.intentions)&&j.intentions.length){
-          D.intentions=j.intentions; D.version=j.version||0;
-          setSave("ok","Référentiel chargé — "+(j.updated_at?("dernière modification "+j.updated_at.slice(0,16).replace("T"," ")):"à jour"));
+          D.intentions=j.intentions; D.combinaisons=j.combinaisons||{}; D.version=j.version||0;
+          setSave("ok","Référentiel chargé — "+(j.updated_at?("dernière modification "+fdate(j.updated_at)):"à jour"));
         }else{
-          D.intentions=JSON.parse(JSON.stringify(DEFAULTS)); D.version=0;
+          D.intentions=JSON.parse(JSON.stringify(DEFAULTS)); D.combinaisons={}; D.version=0;
           setSave("ok","Référentiel initialisé avec les intentions de départ");
+          D.intentions.forEach(ensureVersions);
           save(true);
         }
+        D.intentions.forEach(ensureVersions);
         renderAll();
       })
       .catch(function(){
-        D.intentions=JSON.parse(JSON.stringify(DEFAULTS));
+        D.intentions=JSON.parse(JSON.stringify(DEFAULTS)); D.intentions.forEach(ensureVersions);
         setSave("err","Stockage indisponible — travail non enregistré (le site doit être déployé avec ses fonctions)");
         renderAll();
       });
   }
+  // Les enregistrements sont mis en file : jamais deux en même temps.
+  var saving=false, saveAgain=false;
   function save(silent){
-    setSave("wait","Enregistrement…");
+    if(conflit){ setSave("err","Non enregistré — référentiel modifié ailleurs (voir ci-dessous)"); return Promise.resolve(); }
+    if(saving){ saveAgain=true; return Promise.resolve(); }
+    saving=true; setSave("wait","Enregistrement…");
     return fetch("/.netlify/functions/automail-data",{
       method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({intentions:D.intentions,version:D.version})
-    }).then(function(r){return r.json();}).then(function(j){
-      if(j&&j.ok){ D.version=j.version; setSave("ok","Enregistré — "+j.updated_at.slice(11,16)); if(!silent) toast("Enregistré"); }
-      else setSave("err","Échec de l'enregistrement");
-    }).catch(function(){ setSave("err","Échec de l'enregistrement"); });
+      body:JSON.stringify({intentions:D.intentions,combinaisons:D.combinaisons,version:D.version})
+    }).then(function(r){ return r.json().then(function(j){ return {s:r.status,j:j}; }); })
+      .then(function(x){
+        if(x.s===409){ conflit=true; setSave("err","Non enregistré — référentiel modifié ailleurs (voir ci-dessous)"); $("conflict").classList.remove("hidden"); return; }
+        if(x.j&&x.j.ok){ D.version=x.j.version; setSave("ok","Enregistré — "+fdate(x.j.updated_at).slice(11)); if(!silent) toast("Enregistré"); }
+        else setSave("err","Échec de l'enregistrement");
+      })
+      .catch(function(){ setSave("err","Échec de l'enregistrement — vérifiez la connexion"); })
+      .then(function(){ saving=false; if(saveAgain&&!conflit){ saveAgain=false; save(true); } });
   }
+  $("cf-dl").addEventListener("click",function(){
+    dl(new Blob([JSON.stringify({intentions:D.intentions,combinaisons:D.combinaisons},null,2)],{type:"application/json"}),"automail-modifications-non-enregistrees.json");
+  });
+  $("cf-rl").addEventListener("click",function(){ location.reload(); });
 
   /* ---------- appels IA ---------- */
   function ai(payload){
     return fetch("/.netlify/functions/automail-ai",{
       method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)
-    }).then(function(r){return r.json().then(function(j){ if(!r.ok||j.error) throw new Error(j.error||("erreur "+r.status)); return j; });});
+    }).then(function(r){
+      return r.json().catch(function(){ throw new Error(r.status===404?"fonction automail-ai introuvable (non déployée)":"réponse illisible ("+r.status+")"); })
+        .then(function(j){ if(!r.ok||j.error) throw new Error(j.error||("erreur "+r.status)); return j; });
+    });
   }
-  function slim(){ return D.intentions.map(function(i){return {id:i.id,name:i.name,description:i.description,exemples:i.exemples||[]};}); }
+  function slim(){ return D.intentions.map(function(i){return {id:i.id,name:i.name,description:i.description,
+    exemples:(i.exemples||[]).slice(-8).map(function(e){return {texte:txt(e).slice(0,300)};})};}); }
 
   /* ---------- rendu intentions ---------- */
   function renderStats(){
     var nEx=D.intentions.reduce(function(s,i){return s+((i.exemples||[]).length);},0);
+    var nNew=D.intentions.reduce(function(s,i){return s+nouveaux(i);},0);
+    var nCb=Object.keys(D.combinaisons||{}).length;
     $("stats").innerHTML=
       '<div class="st"><div class="l">Intentions</div><div class="v">'+D.intentions.length+'</div></div>'+
-      '<div class="st acc"><div class="l">Exemples validés</div><div class="v">'+nEx+'</div></div>'+
-      '<div class="st"><div class="l">Moyenne / intention</div><div class="v">'+(D.intentions.length?(nEx/D.intentions.length).toFixed(1).replace(".",","):"0")+'</div></div>'+
-      '<div class="st"><div class="l">Version</div><div class="v">'+(D.version||0)+'</div></div>';
+      '<div class="st ok"><div class="l">Exemples validés</div><div class="v">'+nEx+'</div></div>'+
+      '<div class="st acc"><div class="l">À intégrer aux prompts</div><div class="v">'+nNew+'</div></div>'+
+      '<div class="st"><div class="l">Combinaisons multi</div><div class="v">'+nCb+'</div></div>';
   }
   function renderIntentions(){
     var h=D.intentions.map(function(i){
-      var n=(i.exemples||[]).length;
+      var n=(i.exemples||[]).length, nn=nouveaux(i), v=ensureVersions(i), last=v[v.length-1];
       return '<div class="icard">'+
-        '<div class="ihead"><div><div class="iname">'+esc(i.name)+'</div><div class="iid">'+esc(i.id)+'</div></div>'+
-        '<div class="iacts"><span class="badge b-ok">Actif</span>'+
-        '<span class="badge b-ex">'+n+' exemple'+(n>1?"s":"")+'</span>'+
+        '<div class="ihead"><div><div class="iname">'+esc(i.name)+'</div>'+
+          '<div class="iid">'+esc(i.id)+' · prompt v'+last.n+(last.date?' du '+fdate(last.date).slice(0,10):'')+
+          (i.derniereActualisation?' · actualisé le '+fdate(i.derniereActualisation).slice(0,10):'')+'</div></div>'+
+        '<div class="iacts"><span class="badge b-ex">'+n+' exemple'+(n>1?"s":"")+'</span>'+
         '<button class="btn" data-test="'+i.id+'">Tester</button>'+
+        '<button class="btn up" data-actu="'+i.id+'"'+(n?'':' disabled title="Ajoutez d\'abord des exemples"')+'>↻ Actualiser le prompt'+
+          (nn?'<span class="cnt" title="exemples pas encore intégrés">'+nn+'</span>':'')+'</button>'+
+        '<button class="btn g" data-hist="'+i.id+'">Historique (v'+last.n+')</button>'+
         '<button class="btn g" data-edit="'+i.id+'">Modifier</button>'+
         '<button class="btn g d" data-del="'+i.id+'">Supprimer</button></div></div>'+
         '<div class="prev"><div class="pb"><div class="pl">Business description</div><div class="pc">'+esc(i.description)+'</div></div>'+
@@ -332,32 +507,173 @@
     }).join("");
     $("ilist").innerHTML=h||'<p class="empty">Aucune intention. Créez la première.</p>';
   }
+  function renderCombos(){
+    var cb=D.combinaisons||{}, keys=Object.keys(cb).sort(function(a,b){ return (cb[b].n||0)-(cb[a].n||0); });
+    if(!keys.length){ $("combos").innerHTML=""; return; }
+    $("combos").innerHTML='<div class="sec">Combinaisons multi-intention validées</div>'+
+      '<div class="sec-sub">Les combinaisons les plus fréquentes sont les premières candidates à un template de réponse « multi ».</div>'+
+      '<div class="tw"><table class="t"><thead><tr><th>Combinaison</th><th style="width:80px">Emails</th><th style="width:110px">Dernier</th><th>Exemple</th></tr></thead><tbody>'+
+      keys.map(function(k){ var c=cb[k];
+        return '<tr><td>'+(c.ids||k.split("+")).map(function(id){return '<span class="ich"><b>'+esc(nameOf(id))+'</b></span>';}).join(" + ")+'</td>'+
+          '<td><b>'+(c.n||0)+'</b></td><td class="iid">'+esc(c.dernier||"")+'</td><td class="em">'+esc(String(c.exemple||"").slice(0,160))+'</td></tr>';
+      }).join("")+'</tbody></table></div><div class="sec" style="margin-top:28px">Exemples par intention</div>';
+  }
   function renderBase(){
+    renderCombos();
     var h=D.intentions.map(function(i){
-      var ex=i.exemples||[];
+      var ex=i.exemples||[], nn=nouveaux(i);
       return '<div class="icard"><div class="ihead"><div><div class="iname">'+esc(i.name)+'</div>'+
-        '<div class="iid">'+esc(i.id)+' · '+ex.length+' exemple'+(ex.length>1?"s":"")+'</div></div></div>'+
-        (ex.length? '<div class="tw"><table class="t"><thead><tr><th>Email</th><th style="width:90px">Ajouté le</th><th style="width:60px"></th></tr></thead><tbody>'+
-          ex.map(function(e,k){return '<tr><td class="em">'+esc(String(e.texte||e).slice(0,300))+'</td><td class="iid">'+esc(e.date||"")+'</td>'+
-            '<td><button class="btn g d" data-rmex="'+i.id+'|'+k+'">✕</button></td></tr>';}).join("")+
-          '</tbody></table></div>'
+        '<div class="iid">'+esc(i.id)+' · '+ex.length+' exemple'+(ex.length>1?"s":"")+(nn?' dont '+nn+' nouveau'+(nn>1?"x":""):'')+'</div></div></div>'+
+        (ex.length? '<div class="tw"><table class="t"><thead><tr><th>Email</th><th style="width:96px">Ajouté le</th><th style="width:90px">Origine</th><th style="width:44px"></th></tr></thead><tbody>'+
+          ex.map(function(e,k){
+            var badges=(e.integre?'':'<span class="badge b-new">nouveau</span> ')+
+              (e.multi?'<span class="badge b-multi" title="email à plusieurs demandes">multi'+(e.avec&&e.avec.length?' · avec '+esc(e.avec.map(nameOf).join(", ")):'')+'</span> ':'');
+            return '<tr><td class="em">'+(badges?'<div style="margin-bottom:4px;font-style:normal">'+badges+'</div>':'')+esc(txt(e).slice(0,300))+
+              (e.email&&e.email!==e.texte?'<details class="full"><summary>email complet</summary><div>'+esc(e.email)+'</div></details>':'')+'</td>'+
+              '<td class="iid">'+esc(e.date||"")+'</td><td class="iid">'+esc(e.source||"")+'</td>'+
+              '<td><button class="btn g d" data-rmex="'+i.id+'|'+k+'" title="Retirer cet exemple">✕</button></td></tr>';
+          }).join("")+'</tbody></table></div>'
         : '<p class="empty">Aucun exemple pour l\'instant.</p>')+'</div>';
     }).join("");
     $("blist").innerHTML=h;
   }
   function renderAll(){ renderStats(); renderIntentions(); renderBase(); }
 
-  /* ---------- bloc d'actions après un test ---------- */
-  var actSeq=0;
+  /* ---------- détection multi-intention : proposition à valider ou modifier ---------- */
+  var DET={}, detSeq=0;
+  function confCls(c){ return c>=75?"hi":(c>=50?"md":"lo"); }
+  function intOptions(sel){
+    return D.intentions.map(function(i){ return '<option value="'+esc(i.id)+'"'+(i.id===sel?' selected':'')+'>'+esc(i.name)+'</option>'; }).join("");
+  }
+  function detBlock(email,r,rowBtn){
+    var uid="d"+(++detSeq);
+    var list=listOf(r);
+    DET[uid]={email:email,r:r||{},rowBtn:rowBtn||null,addEx:true,refine:false,
+      rows:list.filter(function(x){return byId(x.intention_id);}).map(function(x){
+        return {orig:x.intention_id,id:x.intention_id,extrait:x.extrait||"",conf:x.confiance,just:x.justification||"",keep:true}; })};
+    return '<div class="det" id="det-'+uid+'">'+detInner(uid)+'</div>';
+  }
+  function detInner(uid){
+    var c=DET[uid], rows=c.rows, n=rows.length;
+    var changed=rows.some(function(x){ return x.keep&&x.orig&&x.id!==x.orig; });
+    var h='<div class="det-h">'+(n?n+' intention'+(n>1?"s":"")+' détectée'+(n>1?"s":""):'Aucune intention détectée')+
+          (n>1?' <span class="badge b-multi">multi-intention</span>':'')+'</div>';
+    if(c.r.synthese) h+='<div class="det-syn">'+esc(c.r.synthese)+'</div>';
+    rows.forEach(function(x,k){
+      h+='<div class="det-r'+(x.keep?'':' off')+'">'+
+        '<label class="det-k" title="Retenir cette intention"><input type="checkbox" data-dk="'+uid+'|'+k+'"'+(x.keep?' checked':'')+'><span class="det-n">'+(k+1)+'</span></label>'+
+        '<div class="det-m"><select data-ds="'+uid+'|'+k+'">'+intOptions(x.id)+'</select>'+
+          (x.orig&&x.id!==x.orig?'<div class="det-chg">✎ corrigée — détectée à l\'origine : « '+esc(nameOf(x.orig))+' »</div>':'')+
+          (x.extrait?'<div class="det-x">« '+esc(x.extrait)+' »</div>':'')+
+          (x.just?'<div class="det-j">'+esc(x.just)+'</div>':'')+'</div>'+
+        (x.conf!=null?'<span class="det-c '+confCls(x.conf)+'">'+x.conf+' %</span>':'<span class="det-c man">ajoutée</span>')+
+      '</div>';
+    });
+    h+='<div style="margin-top:10px"><button class="btn g s" data-dadd="'+uid+'">+ Ajouter une intention manquante</button></div>';
+    (c.r.demandes_non_couvertes||[]).forEach(function(nc){
+      h+='<div class="det-nc"><b>Demande non couverte</b> — aucune intention du catalogue ne correspond : « '+esc(nc)+' ». Piste pour une nouvelle intention.</div>';
+    });
+    h+='<div class="det-f"><label class="opt"><input type="checkbox" data-dopt="'+uid+'|addEx"'+(c.addEx?' checked':'')+'>'+
+        '<span>Ajouter aux exemples des intentions retenues <small>— si plusieurs, chaque intention reçoit le passage qui la concerne</small></span></label>'+
+      (changed?'<label class="opt"><input type="checkbox" data-dopt="'+uid+'|refine"'+(c.refine?' checked':'')+'>'+
+        '<span>Faire évoluer les business descriptions <small>— exception côté intention détectée à tort, renfort côté intention corrigée (proposition à valider)</small></span></label>':'')+
+      '<div style="margin-top:10px"><button class="btn p" data-dval="'+uid+'">Valider</button></div></div>';
+    return h;
+  }
+  function detRefresh(uid){ var el=$("det-"+uid); if(el) el.innerHTML=detInner(uid); }
+
+  function detValider(uid,btn){
+    var c=DET[uid]; if(!c) return;
+    var seen={}, kept=[];
+    c.rows.forEach(function(x){ if(x.keep&&x.id&&!seen[x.id]){ seen[x.id]=1; kept.push(x); } });
+    if(!kept.length){
+      $("det-"+uid).innerHTML='<div class="det-done" style="color:var(--slate)">Aucune intention retenue — rien n\'a été enregistré.</div>';
+      if(c.rowBtn) c.rowBtn.textContent="✓ Traité";
+      return;
+    }
+    var multi=kept.length>1;
+    if(c.addEx){
+      kept.forEach(function(x){
+        var it=byId(x.id); if(!it) return;
+        var ex={texte:(multi&&x.extrait)?x.extrait:c.email,date:today(),ajoute:nowIso(),
+                source:(x.orig&&x.orig!==x.id)?"correction":(x.orig?"recette":"ajout manuel")};
+        if(multi){ ex.multi=true; ex.avec=kept.filter(function(y){return y.id!==x.id;}).map(function(y){return y.id;}); if(x.extrait) ex.email=c.email; }
+        it.exemples=it.exemples||[]; it.exemples.push(ex);
+      });
+    }
+    if(multi){
+      var ids=kept.map(function(x){return x.id;}).sort(), key=ids.join("+");
+      var cb=D.combinaisons[key]||{ids:ids,n:0};
+      cb.n=(cb.n||0)+1; cb.dernier=today(); cb.exemple=c.email.slice(0,300); D.combinaisons[key]=cb;
+    }
+    save(); renderAll();
+    $("det-"+uid).innerHTML='<div class="det-done">✓ Validé — '+kept.map(function(x){return esc(nameOf(x.id));}).join(" + ")+
+      (c.addEx?' · ajouté aux exemples':'')+(multi?' · combinaison enregistrée':'')+'</div>';
+    if(c.rowBtn) c.rowBtn.textContent="✓ Traité";
+    var chg=kept.filter(function(x){ return x.orig&&x.orig!==x.id; });
+    if(c.refine&&chg.length){
+      openRefine(c.email,byId(chg[0].orig),byId(chg[0].id),null);
+      if(chg.length>1) toast("Un affinage à la fois : le premier écart vous est proposé");
+    }
+  }
+
+  document.addEventListener("change",function(e){
+    var r=e.target;
+    if(r.type==="radio"&&/^v-a\d+$/.test(r.name||"")){
+      var uid=r.name.slice(2);
+      var so=$("s-ok-"+uid), sk=$("s-ko-"+uid);
+      if(so) so.classList.toggle("hidden",r.value!=="ok");
+      if(sk) sk.classList.toggle("hidden",r.value!=="ko");
+      return;
+    }
+    var dk=r.getAttribute("data-dk");
+    if(dk){ var p=dk.split("|"); DET[p[0]].rows[+p[1]].keep=r.checked; detRefresh(p[0]); return; }
+    var ds=r.getAttribute("data-ds");
+    if(ds){ var q=ds.split("|"); DET[q[0]].rows[+q[1]].id=r.value; detRefresh(q[0]); return; }
+    var dop=r.getAttribute("data-dopt");
+    if(dop){ var o=dop.split("|"); DET[o[0]][o[1]]=r.checked; return; }
+    var ak=r.getAttribute("data-ak");
+    if(ak&&ACTU){ actuChange(r,function(){ var p=ak.split("|"); ACTU.add[p[0]][+p[1]].on=r.checked; }); return; }
+    if(r.id==="ax-obj"&&ACTU){ actuChange(r,function(){ ACTU.useObj=r.checked; }); return; }
+  });
+
+  document.addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(!b) return;
+
+    var t=b.getAttribute("data-test");
+    if(t){ var p=$("tp-"+t); if(p) p.classList.toggle("hidden"); return; }
+    var r=b.getAttribute("data-run"); if(r){ runOne(r,b); return; }
+    var ed=b.getAttribute("data-edit"); if(ed){ openEdit(ed); return; }
+    var de=b.getAttribute("data-del");
+    if(de){ if(confirm("Supprimer cette intention, son historique et ses exemples ?")){ D.intentions=D.intentions.filter(function(x){return x.id!==de;}); save(); renderAll(); } return; }
+    var rm=b.getAttribute("data-rmex");
+    if(rm){ var pr=rm.split("|"); var it=byId(pr[0]); if(it&&confirm("Retirer cet exemple ?")){ it.exemples.splice(+pr[1],1); save(); renderAll(); } return; }
+    var ap=b.getAttribute("data-apply"); if(ap){ applyActions(ap,b); return; }
+
+    var da=b.getAttribute("data-dadd");
+    if(da){ var c=DET[da]; var used=c.rows.map(function(x){return x.id;});
+      var free=D.intentions.filter(function(i){return used.indexOf(i.id)<0;})[0];
+      c.rows.push({orig:null,id:free?free.id:D.intentions[0].id,extrait:"",conf:null,just:"",keep:true}); detRefresh(da); return; }
+    var dv=b.getAttribute("data-dval"); if(dv){ detValider(dv,b); return; }
+
+    var ac=b.getAttribute("data-actu"); if(ac){ actualiser(ac,b); return; }
+    var hi=b.getAttribute("data-hist"); if(hi){ openHist(hi); return; }
+    var hv=b.getAttribute("data-hv"); if(hv){ histShow(hv); return; }
+    var hr=b.getAttribute("data-hr"); if(hr){ histRestore(hr); return; }
+    var mv=b.getAttribute("data-mv"); if(mv){ actuMove(mv,b); return; }
+  });
+
+  /* ---------- test unitaire (par intention) ---------- */
+  var actSeq=0, CTX={};
   function actionsBlock(email,detectedId){
     var uid="a"+(++actSeq);
     var opts=D.intentions.filter(function(i){return i.id!==detectedId;})
-      .map(function(i){return '<option value="'+i.id+'">'+esc(i.name)+'</option>';}).join("");
+      .map(function(i){return '<option value="'+esc(i.id)+'">'+esc(i.name)+'</option>';}).join("");
     var h='<div class="acts" data-uid="'+uid+'"><div class="at">Que faire de ce résultat ?</div>';
     if(detectedId){
       h+='<label class="opt"><input type="radio" name="v-'+uid+'" value="ok" checked><span><b>Le résultat est correct</b></span></label>'+
          '<div class="sub" id="s-ok-'+uid+'"><label class="opt"><input type="checkbox" id="c-add-'+uid+'" checked>'+
-         '<span>Ajouter cet email aux exemples validés de « '+esc((byId(detectedId)||{}).name||detectedId)+' »</span></label></div>';
+         '<span>Ajouter cet email aux exemples validés de « '+esc(nameOf(detectedId))+' »</span></label></div>';
     }
     h+='<label class="opt"><input type="radio" name="v-'+uid+'" value="ko"'+(detectedId?"":" checked")+'>'+
        '<span><b>'+(detectedId?"Le résultat est incorrect":"Indiquer l'intention attendue")+'</b></span></label>'+
@@ -367,51 +683,12 @@
          '<label class="opt" style="margin-top:8px"><input type="checkbox" id="c-add2-'+uid+'" checked>'+
          '<span>Ajouter cet email aux exemples de l\'intention sélectionnée</span></label>'+
          (detectedId?'<label class="opt"><input type="checkbox" id="c-ref-'+uid+'">'+
-         '<span>Faire évoluer les business descriptions <span style="color:var(--slate);font-size:.85em">(ajout d\'une exception ici, renfort là-bas — proposition à valider)</span></span></label>':'')+
+         '<span>Faire évoluer les business descriptions <small>(ajout d\'une exception ici, renfort là-bas — proposition à valider)</small></span></label>':'')+
        '</div>'+
        '<div style="margin-top:12px"><button class="btn p" data-apply="'+uid+'">Appliquer</button></div></div>';
-    // mémorise le contexte
     CTX[uid]={email:email,detected:detectedId};
     return h;
   }
-  var CTX={};
-
-  document.addEventListener("change",function(e){
-    var r=e.target;
-    if(r.type==="radio"&&/^v-a\d+$/.test(r.name||"")){
-      var uid=r.name.slice(2);
-      var so=$("s-ok-"+uid), sk=$("s-ko-"+uid);
-      if(so) so.classList.toggle("hidden",r.value!=="ok");
-      if(sk) sk.classList.toggle("hidden",r.value!=="ko");
-    }
-  });
-
-  document.addEventListener("click",function(e){
-    var b=e.target.closest("button"); if(!b) return;
-
-    // ouvrir/fermer panneau de test
-    var t=b.getAttribute("data-test");
-    if(t){ var p=$("tp-"+t); if(p) p.classList.toggle("hidden"); return; }
-
-    // lancer test unitaire
-    var r=b.getAttribute("data-run");
-    if(r){ runOne(r,b); return; }
-
-    // édition
-    var ed=b.getAttribute("data-edit"); if(ed){ openEdit(ed); return; }
-    var dl=b.getAttribute("data-del");
-    if(dl){ if(confirm("Supprimer cette intention et ses exemples ?")){ D.intentions=D.intentions.filter(function(x){return x.id!==dl;}); save(); renderAll(); } return; }
-
-    // suppression d'exemple
-    var rm=b.getAttribute("data-rmex");
-    if(rm){ var pr=rm.split("|"); var it=byId(pr[0]); if(it){ it.exemples.splice(+pr[1],1); save(); renderAll(); } return; }
-
-    // appliquer les actions
-    var ap=b.getAttribute("data-apply");
-    if(ap){ applyActions(ap,b); return; }
-  });
-
-  /* ---------- test unitaire (par intention) ---------- */
   function runOne(id,btn){
     var it=byId(id); if(!it) return;
     var email=($("ti-"+id).value||"").trim();
@@ -419,139 +696,313 @@
     if(!email){ out.innerHTML='<div class="notice err">Saisissez un email à tester.</div>'; return; }
     btn.disabled=true; btn.textContent="Analyse…";
     out.innerHTML='<p class="empty">Analyse en cours…</p>';
-    ai({action:"match_one",email:email,intention:{id:it.id,name:it.name,description:it.description,exemples:it.exemples}})
+    ai({action:"match_one",email:email,intention:{id:it.id,name:it.name,description:it.description,
+        exemples:(it.exemples||[]).slice(-8).map(function(e){return {texte:txt(e).slice(0,300)};})}})
       .then(function(j){
         var ok=!!j.match;
         out.innerHTML='<div class="res '+(ok?"ok":"ko")+'"><div class="rt">'+(ok?"✓ MATCH":"✗ NO MATCH")+
           ' <span style="font-weight:400;font-size:.85em;color:var(--slate)">confiance '+(j.confiance!=null?j.confiance+" %":"—")+'</span></div>'+
-          '<div class="rj">'+esc(j.justification||"")+'</div></div>'+
-          actionsBlock(email, ok?id:null);
+          '<div class="rj">'+esc(j.justification||"")+'</div></div>'+actionsBlock(email, ok?id:null);
       })
       .catch(function(err){ out.innerHTML='<div class="notice err">Analyse impossible : '+esc(err.message)+'</div>'; })
       .then(function(){ btn.disabled=false; btn.textContent="Lancer le test"; });
   }
-
-  /* ---------- recette globale ---------- */
-  $("b-gtest").addEventListener("click",function(){
-    var raw=($("g-email").value||"").trim();
-    if(!raw){ $("gmsg").innerHTML='<div class="notice err">Saisissez au moins un email.</div>'; return; }
-    var emails=raw.split(/\n-{3,}\n/).map(function(s){return s.trim();}).filter(Boolean);
-    $("gmsg").innerHTML=""; $("gres").innerHTML="";
-    runBatch(emails,null,$("gprog"),$("gfill"),$("gstat"),$("gres"));
-  });
-
-  function runBatch(emails,expected,prog,fill,stat,out){
-    prog.hidden=false; out.innerHTML="";
-    var results=[],i=0;
-    function next(){
-      if(i>=emails.length){
-        prog.hidden=true; renderBatch(results,out,!!expected); return;
-      }
-      fill.style.width=Math.round(i/emails.length*100)+"%";
-      stat.textContent="Analyse "+(i+1)+"/"+emails.length+"…";
-      ai({action:"match_all",email:emails[i],intentions:slim()})
-        .then(function(j){ results.push({email:emails[i],r:j,att:expected?expected[i]:null}); })
-        .catch(function(e){ results.push({email:emails[i],err:e.message,att:expected?expected[i]:null}); })
-        .then(function(){ i++; next(); });
-    }
-    next();
-  }
-
-  function renderBatch(results,out,withExpected){
-    var nMatch=results.filter(function(x){return x.r&&x.r.intention_id;}).length;
-    var nGood=withExpected?results.filter(function(x){
-      if(!x.att) return false; var f=x.r&&x.r.intention_id?((byId(x.r.intention_id)||{}).name||x.r.intention_id):null;
-      return f&&(f===x.att||x.r.intention_id===x.att);
-    }).length:0;
-    var h='<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:16px">'+
-      '<b>'+results.length+' email'+(results.length>1?"s":"")+' analysé'+(results.length>1?"s":"")+'</b>'+
-      '<span class="badge b-ok">'+nMatch+' match</span>'+
-      (withExpected?'<span class="badge b-ex">'+nGood+' conformes à l\'attendu</span>':'')+'</div>';
-    h+='<div class="tw"><table class="t"><thead><tr><th>Email</th><th>Intention détectée</th><th style="width:70px">Conf.</th>'+
-       (withExpected?'<th>Attendu</th><th style="width:60px">OK</th>':'')+'<th style="width:90px"></th></tr></thead><tbody>';
-    results.forEach(function(x,k){
-      var name=x.r&&x.r.intention_id?((byId(x.r.intention_id)||{}).name||x.r.intention_id):null;
-      var okv=withExpected&&x.att?((name===x.att||(x.r&&x.r.intention_id===x.att))?'<span class="vd y">✓</span>':'<span class="vd n">✗</span>'):"";
-      h+='<tr><td class="em">'+esc(x.email.slice(0,220))+(x.email.length>220?"…":"")+'</td>'+
-         '<td>'+(x.err?'<span class="vd n">erreur</span>':(name?esc(name):'<span class="vd n">aucun match</span>'))+
-         (x.r&&x.r.justification?'<div style="font-size:.78rem;color:var(--slate);margin-top:3px">'+esc(x.r.justification)+'</div>':'')+'</td>'+
-         '<td>'+(x.r&&x.r.confiance!=null?x.r.confiance+" %":"—")+'</td>'+
-         (withExpected?'<td>'+esc(x.att||"—")+'</td><td>'+okv+'</td>':'')+
-         '<td><button class="btn g" data-open="'+k+'">Traiter</button></td></tr>'+
-         '<tr id="row-act-'+k+'" style="display:none"><td colspan="'+(withExpected?6:4)+'" id="row-cell-'+k+'"></td></tr>';
-    });
-    h+='</tbody></table></div>';
-    out.innerHTML=h;
-    BATCH=results;
-    out.querySelectorAll("[data-open]").forEach(function(btn){
-      btn.addEventListener("click",function(){
-        var k=+btn.getAttribute("data-open"); var tr=$("row-act-"+k);
-        if(tr.style.display==="none"){
-          $("row-cell-"+k).innerHTML=actionsBlock(BATCH[k].email, BATCH[k].r?BATCH[k].r.intention_id:null);
-          tr.style.display=""; btn.textContent="Fermer";
-        } else { tr.style.display="none"; btn.textContent="Traiter"; }
-      });
-    });
-  }
-  var BATCH=[];
-
-  /* ---------- application des actions ---------- */
   function applyActions(uid,btn){
     var c=CTX[uid]; if(!c) return;
-    var mode=document.querySelector('input[name="v-'+uid+'"]:checked');
-    mode=mode?mode.value:"ok";
-
+    var mode=document.querySelector('input[name="v-'+uid+'"]:checked'); mode=mode?mode.value:"ok";
     if(mode==="ok"){
       var add=$("c-add-"+uid);
       if(add&&add.checked&&c.detected){
         var it=byId(c.detected);
-        if(it){ it.exemples=it.exemples||[]; it.exemples.push({texte:c.email,date:today(),source:"recette"});
+        if(it){ it.exemples=it.exemples||[]; it.exemples.push({texte:c.email,date:today(),ajoute:nowIso(),source:"recette"});
           save(); renderAll(); toast("Exemple ajouté à « "+it.name+" »"); }
       } else toast("Aucune action appliquée");
       return;
     }
-
-    // mode incorrect
-    var sel=$("sel-"+uid); var rightId=sel?sel.value:null;
-    var right=byId(rightId);
+    var sel=$("sel-"+uid), right=byId(sel?sel.value:null);
     if(!right){ toast("Sélectionnez l'intention attendue"); return; }
-
     var add2=$("c-add2-"+uid), ref=$("c-ref-"+uid);
     if(add2&&add2.checked){
-      right.exemples=right.exemples||[];
-      right.exemples.push({texte:c.email,date:today(),source:"correction"});
+      right.exemples=right.exemples||[]; right.exemples.push({texte:c.email,date:today(),ajoute:nowIso(),source:"correction"});
       save(); renderAll(); toast("Exemple ajouté à « "+right.name+" »");
     }
-    if(ref&&ref.checked&&c.detected){
-      var wrong=byId(c.detected); if(!wrong) return;
-      btn.disabled=true; btn.textContent="Analyse des prompts…";
-      ai({action:"refine",email:c.email,
-          wrong:{id:wrong.id,name:wrong.name,description:wrong.description},
-          right:{id:right.id,name:right.name,description:right.description}})
-        .then(function(j){
-          pendingRefine={wrongId:wrong.id,rightId:right.id,dw:j.description_incorrecte,dr:j.description_correcte};
-          $("ref-sum").textContent=j.resume||"";
-          $("ref-l1").textContent="« "+wrong.name+" » — exception ajoutée";
-          $("ref-d1").textContent=j.description_incorrecte||"";
-          $("ref-l2").textContent="« "+right.name+" » — détection renforcée";
-          $("ref-d2").textContent=j.description_correcte||"";
-          $("ref").classList.remove("hidden");
-        })
-        .catch(function(e){ toast("Affinage impossible : "+e.message); })
-        .then(function(){ btn.disabled=false; btn.textContent="Appliquer"; });
-    }
+    if(ref&&ref.checked&&c.detected) openRefine(c.email,byId(c.detected),right,btn);
   }
 
+  /* ---------- affinage après une correction (exception + renfort) ---------- */
+  function openRefine(email,wrong,right,btn){
+    if(!wrong||!right) return;
+    var lab=btn?btn.textContent:"";
+    if(btn){ btn.disabled=true; btn.textContent="Analyse des prompts…"; } else toast("Analyse des prompts…");
+    ai({action:"refine",email:email,
+        wrong:{id:wrong.id,name:wrong.name,description:wrong.description},
+        right:{id:right.id,name:right.name,description:right.description}})
+      .then(function(j){
+        pendingRefine={wrongId:wrong.id,rightId:right.id,dw:j.description_incorrecte,dr:j.description_correcte};
+        $("ref-sum").textContent=j.resume||"";
+        $("ref-l1").textContent="« "+wrong.name+" » — exception ajoutée";
+        $("ref-d1").innerHTML=diffHtml(lineDiff(wrong.description,j.description_incorrecte||wrong.description));
+        $("ref-l2").textContent="« "+right.name+" » — détection renforcée";
+        $("ref-d2").innerHTML=diffHtml(lineDiff(right.description,j.description_correcte||right.description));
+        $("ref").classList.remove("hidden");
+      })
+      .catch(function(e){ toast("Affinage impossible : "+e.message); })
+      .then(function(){ if(btn){ btn.disabled=false; btn.textContent=lab||"Appliquer"; } });
+  }
   $("ref-a").addEventListener("click",function(){
     if(!pendingRefine) return;
     var w=byId(pendingRefine.wrongId), r=byId(pendingRefine.rightId);
-    if(w&&pendingRefine.dw) w.description=pendingRefine.dw;
-    if(r&&pendingRefine.dr) r.description=pendingRefine.dr;
+    if(w&&pendingRefine.dw) setDescription(w,pendingRefine.dw,"affinage","Exception ajoutée : un email relevait de « "+(r?r.name:"")+" »");
+    if(r&&pendingRefine.dr) setDescription(r,pendingRefine.dr,"affinage","Détection renforcée après une correction");
     pendingRefine=null; $("ref").classList.add("hidden");
-    save(); renderAll(); toast("Business descriptions mises à jour");
+    save(); renderAll(); toast("Business descriptions mises à jour — versions précédentes conservées");
   });
   $("ref-c").addEventListener("click",function(){ pendingRefine=null; $("ref").classList.add("hidden"); });
   $("ref-x").addEventListener("click",function(){ pendingRefine=null; $("ref").classList.add("hidden"); });
+
+  /* ---------- comparaison de textes, ligne à ligne ---------- */
+  function lineDiff(a,b){
+    var A=String(a||"").split("\n"), B=String(b||"").split("\n"), n=A.length, m=B.length;
+    var L=[]; for(var i=0;i<=n;i++){ L.push(new Uint16Array(m+1)); }
+    for(i=n-1;i>=0;i--) for(var j=m-1;j>=0;j--) L[i][j]=A[i]===B[j]?L[i+1][j+1]+1:Math.max(L[i+1][j],L[i][j+1]);
+    var out=[]; i=0; j=0;
+    while(i<n&&j<m){
+      if(A[i]===B[j]){ out.push({t:"=",s:A[i]}); i++; j++; }
+      else if(L[i+1][j]>=L[i][j+1]){ out.push({t:"-",s:A[i]}); i++; }
+      else { out.push({t:"+",s:B[j]}); j++; }
+    }
+    while(i<n){ out.push({t:"-",s:A[i++]}); }
+    while(j<m){ out.push({t:"+",s:B[j++]}); }
+    return out;
+  }
+  function diffHtml(ops){
+    return ops.map(function(o){
+      return '<div class="dl'+(o.t==="+"?" add":(o.t==="-"?" del":""))+'">'+(o.t==="="?"  ":o.t+" ")+esc(o.s||" ")+'</div>';
+    }).join("");
+  }
+
+  /* ---------- structure d'une business description ---------- */
+  var SECS=[{k:"lex",re:/^champs? lexicaux\b/},{k:"int",re:/^intentions? a detecter\b/},
+            {k:"exc",re:/^exceptions?\b/},{k:"pos",re:/^exemples? positifs?\b/}];
+  var SEC_TITLE={lex:"CHAMPS LEXICAUX :",int:"INTENTIONS À DÉTECTER :",exc:"EXCEPTIONS (ne PAS matcher) :",pos:"EXEMPLES POSITIFS :"};
+  var SEC_LAB={lex:"Champs lexicaux",int:"Intentions à détecter",exc:"Exceptions",pos:"Exemples positifs"};
+  function secOf(line){
+    var t=String(line).trim(); if(!t||t.length>70||/^[-•*"«]/.test(t)) return null;
+    var n=norm(t).replace(/[:\s]+$/,"");
+    for(var i=0;i<SECS.length;i++){ if(SECS[i].re.test(n)) return SECS[i].k; }
+    return null;
+  }
+  function parseDesc(desc,name){
+    var lines=String(desc||"").replace(/\r/g,"").split("\n");
+    var secs=[], cur=null, first=-1;
+    lines.forEach(function(l,i){
+      var k=secOf(l);
+      if(k){ if(first<0) first=i; cur={k:k,head:i,last:i,lines:[]}; secs.push(cur); return; }
+      if(cur){ cur.lines.push(l); if(l.trim()) cur.last=i; }
+    });
+    var intro=first<0?lines:lines.slice(0,first), nameLine=null;
+    for(var i=0;i<intro.length;i++){ if(intro[i].trim()){ if(norm(intro[i]).replace(/[:\s]+$/,"")===norm(name)) nameLine=i; break; } }
+    return { lines:lines, secs:secs, first:first, structured:first>=0, nameLine:nameLine,
+             intro:intro.filter(function(l,k){return k!==nameLine;}).join("\n").trim() };
+  }
+  function secLines(P,k){ var s=P.secs.filter(function(x){return x.k===k;})[0]; return s?s.lines.filter(function(l){return l.trim();}):[]; }
+  function termsOf(s){ var out=[],re=/"([^"]+)"|«\s*([^»]+?)\s*»|“([^”]+)”/g,m; while((m=re.exec(s))) out.push((m[1]||m[2]||m[3]).trim()); return out; }
+  function clean(s){ return String(s||"").trim().replace(/^[-•*]\s*/,""); }
+  function keyOf(s){ return norm(s).replace(/[^a-z0-9]+/g," ").trim(); }
+  // Champs lexicaux : on ne garde que les termes absents, dédoublonnés terme par terme.
+  function dedupeLex(P,list){
+    var have={}; secLines(P,"lex").forEach(function(l){ termsOf(l).forEach(function(t){ have[keyOf(t)]=1; }); });
+    var out=[];
+    (list||[]).forEach(function(line){
+      var ts=termsOf(line); if(!ts.length) ts=clean(line).split(/\s*,\s*/);
+      ts=ts.map(function(t){return t.replace(/["«»“”]/g,"").trim();}).filter(function(t){ var k=keyOf(t); if(!k||have[k]) return false; have[k]=1; return true; });
+      if(ts.length) out.push("- "+ts.map(function(t){return '"'+t+'"';}).join(", "));
+    });
+    return out;
+  }
+  function dedupeLines(P,k,list,fmt){
+    var have={}; secLines(P,k).forEach(function(l){ var c=keyOf(clean(l)); if(c) have[c]=1; });
+    var out=[];
+    (list||[]).forEach(function(x){ var c=clean(x); if(!c) return; var f=fmt(c), kk=keyOf(clean(f)); if(!kk||have[kk]) return; have[kk]=1; out.push(f); });
+    return out;
+  }
+  function fmtLine(c){ return "- "+c; }
+  function fmtPos(c){ return '- "'+c.replace(/^["«“]\s*|\s*["»”]$/g,"")+'"'; }
+
+  /* ---------- ACTUALISER LE PROMPT ---------- */
+  var ACTU=null;
+  function actualiser(id,btn){
+    var it=byId(id); if(!it) return;
+    var ex=it.exemples||[];
+    if(!ex.length){ toast("Ajoutez d'abord des exemples à cette intention"); return; }
+    var N=ex.filter(function(e){return !e.integre;}), A=ex.filter(function(e){return e.integre;});
+    if(!N.length&&!confirm("Aucun nouvel exemple depuis la dernière actualisation.\nRelancer quand même sur les "+A.length+" exemples déjà intégrés ?")) return;
+    N=N.slice(-CAP_NOUVEAUX); A=A.slice(-CAP_ANCIENS);
+    var refs={}; N.forEach(function(e,k){refs["N"+(k+1)]=e;}); A.forEach(function(e,k){refs["A"+(k+1)]=e;});
+    var lab=btn.innerHTML; btn.disabled=true; btn.textContent="Lecture de "+(N.length+A.length)+" emails…";
+    ai({action:"actualiser",
+        intention:{id:it.id,name:it.name,description:it.description},
+        nouveaux:N.map(function(e){return {texte:txt(e),multi:!!e.multi};}),
+        anciens:A.map(function(e){return {texte:txt(e),multi:!!e.multi};}),
+        autres:D.intentions.filter(function(x){return x.id!==it.id;}).map(function(x){return {id:x.id,name:x.name,description:parseDesc(x.description,x.name).intro.slice(0,400)};})})
+      .then(function(j){ openActu(it,j,{N:N,A:A,refs:refs}); })
+      .catch(function(e){ toast("Actualisation impossible : "+e.message); })
+      .then(function(){ btn.disabled=false; btn.innerHTML=lab; });
+  }
+  function openActu(it,j,meta){
+    var P=parseDesc(it.description,it.name);
+    ACTU={id:it.id,j:j,meta:meta,P:P,useObj:P.structured&&!!j.objectif,manual:false,moved:{},
+      add:{ lex:dedupeLex(P,j.champs_lexicaux).map(function(t){return {t:t,on:true};}),
+            int:dedupeLines(P,"int",j.intentions_a_detecter,fmtLine).map(function(t){return {t:t,on:true};}),
+            pos:dedupeLines(P,"pos",j.exemples_positifs,fmtPos).map(function(t){return {t:t,on:true};}),
+            exc:dedupeLines(P,"exc",j.exceptions_suggerees,fmtLine).map(function(t){return {t:t,on:false};}) }};
+    $("act-t").textContent="Actualiser « "+it.name+" »";
+    $("act-s").textContent=(meta.N.length+meta.A.length)+" emails relus, dont "+meta.N.length+" nouveau"+(meta.N.length>1?"x":"")+
+      " · prompt v"+vCur(it)+" → v"+(vCur(it)+1);
+    renderActu(); $("act").classList.remove("hidden");
+  }
+  function addRows(k,sug){
+    var a=ACTU.add[k];
+    if(!a.length) return '<div class="ax-none">Rien à ajouter : les emails sont déjà couverts.</div>';
+    return a.map(function(x,i){
+      return '<label class="ax-add'+(sug?' sug':'')+'"><input type="checkbox" data-ak="'+k+'|'+i+'"'+(x.on?' checked':'')+'><span>'+esc(x.t)+'</span></label>';
+    }).join("");
+  }
+  function renderActu(){
+    var it=byId(ACTU.id), j=ACTU.j, P=ACTU.P, h='';
+    if(j.resume) h+='<div class="sumbox">'+esc(j.resume)+'</div>';
+    if(j.incoherences&&j.incoherences.length){
+      h+='<div class="warnbox"><b>⚠ Incohérences repérées dans le prompt actuel — à arbitrer par vous</b><ul>'+
+        j.incoherences.map(function(x){return '<li>'+esc(x)+'</li>';}).join("")+'</ul>'+
+        '<div style="margin-top:6px;font-size:.8rem">Elles ne sont pas corrigées automatiquement : c\'est à vous de décider quelle intention couvre ce cas.</div></div>';
+    }
+    // objectif
+    h+='<div class="ax"><div class="ax-h"><span class="ax-t">Objectif de l\'intention</span>'+
+       (P.structured?'<label class="ax-s" style="cursor:pointer"><input type="checkbox" id="ax-obj"'+(ACTU.useObj?' checked':'')+'> appliquer le nouvel objectif</label>':
+        '<span class="ax-s">prompt non structuré : l\'objectif proposé n\'est pas appliqué automatiquement</span>')+'</div>'+
+       '<div class="ax-b"><div class="obj"><div class="o1"><span class="ol">Actuel</span>'+esc(P.intro||"(vide)")+'</div>'+
+       '<div class="o2"><span class="ol">Proposé</span>'+esc(j.objectif||"(aucune proposition)")+'</div></div></div></div>';
+    // sections enrichies
+    ["lex","int","pos"].forEach(function(k){
+      var kept=secLines(P,k), a=ACTU.add[k];
+      h+='<div class="ax"><div class="ax-h"><span class="ax-t">'+SEC_LAB[k]+'</span><span class="ax-s">'+kept.length+' ligne'+(kept.length>1?"s":"")+' conservée'+(kept.length>1?"s":"")+
+         ' · '+a.length+' ajout'+(a.length>1?"s":"")+' proposé'+(a.length>1?"s":"")+'</span></div><div class="ax-b">'+
+         (kept.length?'<details class="ax-keep"><summary>voir les lignes conservées</summary><pre>'+esc(kept.join("\n"))+'</pre></details>':'')+
+         addRows(k,false)+'</div></div>';
+    });
+    // exceptions : jamais automatiques
+    var ke=secLines(P,"exc");
+    h+='<div class="ax"><div class="ax-h"><span class="ax-t">Exceptions</span><span class="ax-s">'+ke.length+' conservée'+(ke.length>1?"s":"")+
+       ' telles quelles · suggestions décochées par défaut</span></div><div class="ax-b">'+
+       (ACTU.add.exc.length?'<div class="ax-s" style="margin-bottom:6px">Une exception déplace la frontière avec une autre intention : ne cochez qu\'après vérification.</div>':'')+
+       addRows("exc",true)+'</div></div>';
+    // exemples douteux
+    var dbt=(j.exemples_douteux||[]).filter(function(x){return ACTU.meta.refs[x.ref];});
+    if(dbt.length){
+      h+='<div class="ax"><div class="ax-h"><span class="ax-t">Exemples qui semblent appartenir à une autre intention</span><span class="ax-s">'+dbt.length+'</span></div><div class="ax-b">'+
+        dbt.map(function(x){
+          var e=ACTU.meta.refs[x.ref], target=byId(x.intention_suggeree), done=ACTU.moved[x.ref];
+          return '<div class="dbt"><div style="flex:1"><em>« '+esc(txt(e).slice(0,220))+' »</em>'+
+            '<div class="why">→ '+(target?'« '+esc(target.name)+' »':'aucune intention')+' — '+esc(x.raison)+'</div></div>'+
+            (target?'<button class="btn s'+(done?' g':'')+'" data-mv="'+esc(x.ref)+'|'+esc(target.id)+'"'+(done?' disabled':'')+'>'+(done?'✓ Déplacé':'Déplacer')+'</button>':'')+'</div>';
+        }).join("")+'</div></div>';
+    }
+    // texte final
+    h+='<div class="fg" style="margin-top:16px"><label class="fl" for="ax-final">Prompt final — v'+(vCur(it)+1)+' (modifiable avant enregistrement)</label>'+
+       '<textarea id="ax-final" class="mono" rows="18"></textarea>'+
+       '<div class="fh">Construit automatiquement : toutes les lignes actuelles sont conservées, les ajouts cochés sont placés à la fin de chaque section. '+
+       'Vous pouvez retoucher le texte ; cocher ou décocher une ligne le reconstruit.</div></div>';
+    $("act-b").innerHTML=h;
+    $("ax-final").value=buildActu();
+    $("ax-final").addEventListener("input",function(){ ACTU.manual=true; });
+  }
+  function actuChange(el,apply){
+    if(ACTU.manual&&!confirm("Reconstruire le prompt final ? Vos retouches manuelles seront perdues.")){ el.checked=!el.checked; return; }
+    apply(); ACTU.manual=false; $("ax-final").value=buildActu();
+  }
+  // Fusion déterministe : le texte actuel est conservé à l'identique, les ajouts sont insérés.
+  function buildActu(){
+    var P=ACTU.P, lines=P.lines.slice(), ins=[], nouvelles=[];
+    ["lex","int","exc","pos"].forEach(function(k){
+      var add=ACTU.add[k].filter(function(a){return a.on;}).map(function(a){return a.t;});
+      if(!add.length) return;
+      var s=P.secs.filter(function(x){return x.k===k;})[0];
+      if(s) ins.push({at:s.last+1,lines:add}); else nouvelles.push({k:k,lines:add});
+    });
+    ins.sort(function(a,b){return b.at-a.at;}).forEach(function(i){ Array.prototype.splice.apply(lines,[i.at,0].concat(i.lines)); });
+    if(ACTU.useObj&&P.structured&&ACTU.j.objectif){
+      var head=P.nameLine!=null?[lines[P.nameLine],""]:[];
+      Array.prototype.splice.apply(lines,[0,P.first].concat(head.concat([ACTU.j.objectif,""])));
+    }
+    var out=lines.join("\n").replace(/\s+$/,"");
+    nouvelles.forEach(function(s){ out+="\n\n"+SEC_TITLE[s.k]+"\n"+s.lines.join("\n"); });
+    return out;
+  }
+  function actuMove(spec,btn){
+    var p=spec.split("|"), e=ACTU.meta.refs[p[0]], from=byId(ACTU.id), to=byId(p[1]);
+    if(!e||!from||!to) return;
+    var i=(from.exemples||[]).indexOf(e); if(i<0) return;
+    from.exemples.splice(i,1);
+    var copy=JSON.parse(JSON.stringify(e)); delete copy.integre; copy.source="déplacé"; copy.date=today(); copy.ajoute=nowIso();
+    to.exemples=to.exemples||[]; to.exemples.push(copy);
+    ACTU.moved[p[0]]=true; btn.disabled=true; btn.textContent="✓ Déplacé"; btn.classList.add("g");
+    save(true); renderAll(); toast("Exemple déplacé vers « "+to.name+" »");
+  }
+  function closeActu(){ ACTU=null; $("act").classList.add("hidden"); }
+  $("act-a").addEventListener("click",function(){
+    if(!ACTU) return;
+    var it=byId(ACTU.id); if(!it){ closeActu(); return; }
+    var nv=$("ax-final").value;
+    var nb={lex:0,int:0,pos:0,exc:0}; Object.keys(nb).forEach(function(k){ nb[k]=ACTU.add[k].filter(function(a){return a.on;}).length; });
+    var note=ACTU.meta.N.length+" nouvel(s) exemple(s) intégré(s), "+(ACTU.meta.N.length+ACTU.meta.A.length)+" emails relus — "+
+      "+"+nb.lex+" champ(s) lexical(aux), +"+nb.int+" intention(s), +"+nb.pos+" exemple(s)"+(nb.exc?", +"+nb.exc+" exception(s)":"")+
+      (ACTU.useObj?", objectif enrichi":"")+(ACTU.manual?", retouché à la main":"");
+    var changed=setDescription(it,nv,"actualisation",note);
+    var vn=vCur(it);
+    ACTU.meta.N.concat(ACTU.meta.A).forEach(function(e){ if((it.exemples||[]).indexOf(e)>=0) e.integre=vn; });
+    it.derniereActualisation=nowIso();
+    closeActu(); save(); renderAll();
+    toast(changed?"Prompt enregistré en v"+vn+" — la version précédente reste disponible dans l'historique"
+                 :"Aucun changement — exemples marqués comme pris en compte");
+  });
+  $("act-c").addEventListener("click",closeActu);
+  $("act-x").addEventListener("click",closeActu);
+
+  /* ---------- historique des versions ---------- */
+  var HIST=null;
+  function openHist(id){
+    var it=byId(id); if(!it) return; HIST=id;
+    $("his-t").textContent="Historique — « "+it.name+" »";
+    renderHist(); $("his").classList.remove("hidden");
+  }
+  function renderHist(sel){
+    var it=byId(HIST), v=ensureVersions(it).slice().reverse(), cur=vCur(it);
+    var h='<div class="tw" style="margin-top:0"><table class="t"><thead><tr><th style="width:52px">Version</th><th style="width:130px">Date</th>'+
+      '<th style="width:170px">Origine</th><th>Note</th><th style="width:70px">Exemples</th><th style="width:220px"></th></tr></thead><tbody>'+
+      v.map(function(x){
+        var isCur=x.n===cur;
+        return '<tr><td><b>v'+x.n+'</b>'+(isCur?'<div class="vcur">ACTUELLE</div>':'')+'</td><td class="iid">'+esc(x.date?fdate(x.date):"avant historique")+'</td>'+
+          '<td>'+esc(ORIGINES[x.origine]||x.origine)+'</td><td style="font-size:.82rem">'+esc(x.note||"")+'</td><td class="iid">'+(x.nbExemples!=null?x.nbExemples:"—")+'</td>'+
+          '<td><button class="btn s" data-hv="v|'+x.n+'">Voir</button> '+
+          (isCur?'':'<button class="btn s" data-hv="d|'+x.n+'">Comparer</button> <button class="btn s up" data-hr="'+x.n+'">Restaurer</button>')+'</td></tr>';
+      }).join("")+'</tbody></table></div><div id="his-v" style="margin-top:16px"></div>';
+    $("his-b").innerHTML=h;
+  }
+  function verOf(it,n){ return ensureVersions(it).filter(function(x){return x.n===+n;})[0]; }
+  function histShow(spec){
+    var p=spec.split("|"), it=byId(HIST), x=verOf(it,p[1]); if(!x) return;
+    if(p[0]==="v") $("his-v").innerHTML='<label class="fl">Contenu de la v'+x.n+'</label><div class="plain">'+esc(x.description)+'</div>';
+    else $("his-v").innerHTML='<label class="fl">De la v'+x.n+' à la version actuelle (v'+vCur(it)+') — en vert ce qui a été ajouté depuis, barré ce qui a été retiré</label>'+
+      '<div class="diff">'+diffHtml(lineDiff(x.description,it.description))+'</div>';
+    $("his-v").scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+  function histRestore(n){
+    var it=byId(HIST), x=verOf(it,n); if(!x) return;
+    if(!confirm("Restaurer le contenu de la v"+x.n+" ?\nLa version actuelle reste disponible dans l'historique.")) return;
+    if(setDescription(it,x.description,"restauration","Retour au contenu de la v"+x.n)){ save(); renderAll(); renderHist(); toast("Contenu de la v"+x.n+" restauré en v"+vCur(it)); }
+    else toast("Ce contenu est déjà celui de la version actuelle");
+  }
+  $("his-x").addEventListener("click",function(){ HIST=null; $("his").classList.add("hidden"); });
 
   /* ---------- édition d'intention ---------- */
   var editing=null;
@@ -567,10 +1018,12 @@
   $("mod-s").addEventListener("click",function(){
     var n=$("f-name").value.trim(), d=$("f-desc").value.trim(), t=$("f-tpl").value.trim();
     if(!n||!d){ alert("Le nom et la business description sont obligatoires."); return; }
-    if(editing){ var it=byId(editing); it.name=n; it.description=d; it.template=t; }
+    if(editing){ var it=byId(editing); it.name=n; it.template=t; setDescription(it,d,"manuel","Modification manuelle"); }
     else{
-      var code=n.toUpperCase().replace(/[^A-Z]/g,"").slice(0,4)||"INTE";
-      D.intentions.push({id:code+"-"+String(D.intentions.length+1).padStart(3,"0"),name:n,description:d,template:t,exemples:[]});
+      var code=n.toUpperCase().normalize("NFD").replace(/[^A-Z]/g,"").slice(0,4)||"INTE", k=D.intentions.length+1, id;
+      do{ id=code+"-"+String(k++).padStart(3,"0"); }while(byId(id));
+      var ni={id:id,name:n,description:d,template:t,exemples:[]}; ensureVersions(ni); ni.versions[0].date=nowIso(); ni.versions[0].note="Création de l'intention";
+      D.intentions.push(ni);
     }
     $("mod").classList.add("hidden"); save(); renderAll();
   });
@@ -584,31 +1037,122 @@
     });
   });
 
+  /* ---------- recette globale ---------- */
+  $("b-gtest").addEventListener("click",function(){
+    var raw=($("g-email").value||"").trim();
+    if(!raw){ $("gmsg").innerHTML='<div class="notice err">Saisissez au moins un email.</div>'; return; }
+    var emails=raw.split(/\n-{3,}\n/).map(function(s){return s.trim();}).filter(Boolean);
+    $("gmsg").innerHTML=""; $("gres").innerHTML="";
+    runBatch(emails,null,$("gprog"),$("gfill"),$("gstat"),$("gres"));
+  });
+  function runBatch(emails,expected,prog,fill,stat,out){
+    prog.hidden=false; out.innerHTML="";
+    var results=[],i=0, cat=slim();
+    function next(){
+      if(i>=emails.length){ prog.hidden=true; renderBatch(results,out,!!expected); return; }
+      fill.style.width=Math.round(i/emails.length*100)+"%";
+      stat.textContent="Analyse "+(i+1)+"/"+emails.length+"…";
+      ai({action:"match_all",email:emails[i],intentions:cat})
+        .then(function(j){ results.push({email:emails[i],r:j,att:expected?expected[i]:null}); })
+        .catch(function(e){ results.push({email:emails[i],err:e.message,att:expected?expected[i]:null}); })
+        .then(function(){ i++; next(); });
+    }
+    next();
+  }
+  function listOf(r){ return r?(Array.isArray(r.intentions)?r.intentions:(r.intention_id?[{intention_id:r.intention_id,confiance:r.confiance,extrait:"",justification:r.justification}]:[])):[]; }
+  function detIds(x){ return listOf(x.r).map(function(y){return y.intention_id;}); }
+  function attendus(att){
+    return String(att||"").split(/\s*[+;|]\s*/).map(function(s){return s.trim();}).filter(Boolean).map(function(s){
+      var it=D.intentions.filter(function(i){return norm(i.name)===norm(s)||norm(i.id)===norm(s);})[0];
+      return it?it.id:"?"+s;
+    });
+  }
+  function conformite(att,det){
+    var exp=attendus(att); if(!exp.length) return null;
+    var hit=exp.filter(function(id){return det.indexOf(id)>=0;}).length;
+    var extra=det.filter(function(id){return exp.indexOf(id)<0;}).length;
+    if(hit===exp.length&&!extra) return {c:"y",t:"✓",ok:true};
+    if(hit===exp.length) return {c:"y",t:"✓ +"+extra,ok:true,title:"conforme, avec "+extra+" intention(s) détectée(s) en plus"};
+    if(hit) return {c:"p",t:"◐",title:"partiellement conforme"};
+    return {c:"n",t:"✗"};
+  }
+  var BATCH=[];
+  function chips(x){
+    if(x.err) return '<span class="vd n">erreur</span><div style="font-size:.76rem;color:var(--slate)">'+esc(x.err)+'</div>';
+    var l=listOf(x.r);
+    var h=l.length?l.map(function(y,k){ return '<span class="ich'+(k===0?' p1':'')+'"><b>'+esc(nameOf(y.intention_id))+'</b><small>'+y.confiance+'%</small></span>'; }).join("")
+                 :'<span class="vd n">aucun match</span>';
+    if(l.length>1) h='<span class="badge b-multi" style="margin-bottom:4px">multi</span><br>'+h;
+    (x.r.demandes_non_couvertes||[]).forEach(function(nc){ h+='<div class="ncm">＋ non couvert : '+esc(nc)+'</div>'; });
+    return h;
+  }
+  function renderBatch(results,out,withExpected){
+    BATCH=results;
+    // un seul email saisi à la main : on ouvre directement la proposition
+    if(results.length===1&&!withExpected){
+      var x=results[0];
+      out.innerHTML=x.err?'<div class="notice err">Analyse impossible : '+esc(x.err)+'</div>':detBlock(x.email,x.r,null);
+      return;
+    }
+    var nAny=results.filter(function(x){return detIds(x).length;}).length;
+    var nMulti=results.filter(function(x){return detIds(x).length>1;}).length;
+    var nNc=results.filter(function(x){return x.r&&(x.r.demandes_non_couvertes||[]).length;}).length;
+    var nOk=withExpected?results.filter(function(x){ var c=conformite(x.att,detIds(x)); return c&&c.ok; }).length:0;
+    var nExp=withExpected?results.filter(function(x){return attendus(x.att).length;}).length:0;
+    var h='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px">'+
+      '<b>'+results.length+' email'+(results.length>1?"s":"")+' analysé'+(results.length>1?"s":"")+'</b>'+
+      '<span class="badge b-ok">'+nAny+' avec au moins une intention</span>'+
+      '<span class="badge b-multi">'+nMulti+' multi-intention</span>'+
+      (nNc?'<span class="badge b-new">'+nNc+' avec une demande non couverte</span>':'')+
+      (withExpected?'<span class="badge b-ex">'+nOk+' / '+nExp+' conformes à l\'attendu</span>':'')+'</div>';
+    h+='<div class="tw"><table class="t"><thead><tr><th>Email</th><th>Intentions détectées</th>'+
+       (withExpected?'<th>Attendu</th><th style="width:58px">OK</th>':'')+'<th style="width:96px"></th></tr></thead><tbody>';
+    results.forEach(function(x,k){
+      var cf=withExpected?conformite(x.att,detIds(x)):null;
+      h+='<tr><td class="em">'+esc(x.email.slice(0,220))+(x.email.length>220?"…":"")+'</td><td>'+chips(x)+'</td>'+
+         (withExpected?'<td style="font-size:.82rem">'+esc(x.att||"—")+'</td><td>'+(cf?'<span class="vd '+cf.c+'" title="'+esc(cf.title||"")+'">'+cf.t+'</span>':'')+'</td>':'')+
+         '<td><button class="btn g" data-open="'+k+'">Traiter</button></td></tr>'+
+         '<tr data-row="'+k+'" style="display:none"><td colspan="'+(withExpected?5:3)+'" data-cell="'+k+'"></td></tr>';
+    });
+    h+='</tbody></table></div>';
+    out.innerHTML=h;
+    out.querySelectorAll("[data-open]").forEach(function(btn){
+      btn.addEventListener("click",function(){
+        var k=+btn.getAttribute("data-open"), tr=out.querySelector('[data-row="'+k+'"]');
+        if(tr.style.display==="none"){
+          if(!tr.getAttribute("data-built")){
+            var x=BATCH[k];
+            out.querySelector('[data-cell="'+k+'"]').innerHTML=x.err?'<div class="notice err">'+esc(x.err)+'</div>':detBlock(x.email,x.r,btn);
+            tr.setAttribute("data-built","1");
+          }
+          tr.style.display=""; if(btn.textContent==="Traiter") btn.textContent="Fermer";
+        } else { tr.style.display="none"; if(btn.textContent==="Fermer") btn.textContent="Traiter"; }
+      });
+    });
+  }
+
   /* ---------- modèle Excel ---------- */
   $("b-tpl").addEventListener("click", async function(){
     var wb=new ExcelJS.Workbook();
     var ws=wb.addWorksheet("Emails à tester");
-    ws.addRow(["Email client (anonymisé)","Intention attendue (facultatif)"]);
+    ws.addRow(["Email client (anonymisé)","Intention(s) attendue(s) — facultatif, séparées par « + »"]);
     ws.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; });
-    ws.addRow(["Bonjour, je voudrais connaître mes horaires heures creuses. Merci.","Information HP/HC"]);
-    ws.addRow(["Bonjour, je n'arrive plus à me connecter à mon espace client, mot de passe refusé.","Problème de connexion à mon espace client"]);
-    ws.addRow(["Mes heures creuses ne servent à rien chez moi, je veux repasser en option base.","Changer d'option tarifaire"]);
+    var n0=D.intentions[0]?D.intentions[0].name:"", n1=D.intentions[1]?D.intentions[1].name:"";
+    ws.addRow(["Bonjour, je voudrais connaître mes horaires heures creuses. Merci.",n0]);
+    ws.addRow(["Bonjour, je n'arrive plus à me connecter à mon espace client, mot de passe refusé.",n1]);
+    ws.addRow(["Bonjour, comment fonctionnent les heures creuses ? Et par ailleurs je n'arrive plus à me connecter à mon espace client.",n0&&n1?n0+" + "+n1:""]);
     ws.addRow(["Bonjour, comment fonctionne le parrainage ? Cordialement.",""]);
-    ws.getColumn(1).width=90; ws.getColumn(2).width=42;
+    ws.getColumn(1).width=90; ws.getColumn(2).width=52;
     ws.getColumn(1).alignment={wrapText:true,vertical:"top"};
     ws.views=[{state:"frozen",ySplit:1}];
-
     var ws2=wb.addWorksheet("Intentions disponibles");
     ws2.addRow(["Nom exact de l'intention","Identifiant"]);
     ws2.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; });
     D.intentions.forEach(function(i){ ws2.addRow([i.name,i.id]); });
     ws2.getColumn(1).width=48; ws2.getColumn(2).width=16;
-
     var buf=await wb.xlsx.writeBuffer();
     dl(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),"modele-emails-test.xlsx");
   });
-
-  function dl(blob,name){ var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click(); }
 
   /* ---------- import de fichier ---------- */
   var drop=$("drop"), fi=$("file");
@@ -618,14 +1162,13 @@
   ["dragleave","drop"].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove("over"); }); });
   drop.addEventListener("drop",function(e){ var f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) readFile(f); });
   fi.addEventListener("change",function(e){ var f=e.target.files[0]; if(f) readFile(f); fi.value=""; });
-
   async function readFile(f){
     $("bmsg").innerHTML=""; $("bres").innerHTML="";
     var emails=[],att=[];
     try{
       if(/\.csv$/i.test(f.name)){
-        var txt=await f.text();
-        txt.replace(/^\uFEFF/,"").split(/\r?\n/).forEach(function(line,idx){
+        var t=await f.text();
+        t.replace(/^﻿/,"").split(/\r?\n/).forEach(function(line,idx){
           if(!line.trim())return;
           var cells=line.split(/[;,](?=(?:[^"]*"[^"]*")*[^"]*$)/).map(function(c){return c.replace(/^"|"$/g,"").trim();});
           if(idx===0&&/email/i.test(cells[0]))return;
@@ -637,36 +1180,92 @@
         for(var r=1;r<=ws.actualRowCount;r++){
           var row=ws.getRow(r);
           var a=row.getCell(1).value, b=row.getCell(2).value;
-          var ta=(a&&typeof a==="object"&&a.text)?a.text:a;
+          var ta=(a&&typeof a==="object"&&a.text)?a.text:(a&&typeof a==="object"&&a.richText?a.richText.map(function(x){return x.text;}).join(""):a);
           if(ta==null)continue; ta=String(ta).trim();
           if(r===1&&/email/i.test(ta))continue;
           if(ta.length>5){ emails.push(ta); att.push(b?String((b.text||b)).trim():null); }
         }
       }
     }catch(e){ $("bmsg").innerHTML='<div class="notice err">Lecture impossible : '+esc(e.message)+'</div>'; return; }
-
     if(!emails.length){ $("bmsg").innerHTML='<div class="notice err">Aucun email trouvé. Vérifiez que les emails sont en colonne A.</div>'; return; }
     var hasAtt=att.some(Boolean);
     runBatch(emails,hasAtt?att:null,$("bprog"),$("bfill"),$("bstat"),$("bres"));
   }
 
   /* ---------- exports ---------- */
-  $("b-expj").addEventListener("click",function(){
-    dl(new Blob([JSON.stringify({intentions:D.intentions,version:D.version},null,2)],{type:"application/json"}),"referentiel-intentions.json");
-  });
+  function head(ws){ ws.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; }); }
+  function widths(ws,w){ w.forEach(function(x,k){ ws.getColumn(k+1).width=x; ws.getColumn(k+1).alignment={wrapText:true,vertical:"top"}; }); ws.views=[{state:"frozen",ySplit:1}]; }
+  function backupJson(){
+    return new Blob([JSON.stringify({intentions:D.intentions,combinaisons:D.combinaisons,version:D.version,exporte_le:nowIso()},null,2)],{type:"application/json"});
+  }
+  $("b-expj").addEventListener("click",function(){ dl(backupJson(),"referentiel-intentions-"+today()+".json"); });
+
+  /* ---------- restauration d'une sauvegarde JSON ---------- */
+  var rdrop=$("rdrop"), rfi=$("rfile"), PENDING=null;
+  rdrop.addEventListener("click",function(){ rfi.click(); });
+  rdrop.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); rfi.click(); } });
+  ["dragenter","dragover"].forEach(function(ev){ rdrop.addEventListener(ev,function(e){ e.preventDefault(); rdrop.classList.add("over"); }); });
+  ["dragleave","drop"].forEach(function(ev){ rdrop.addEventListener(ev,function(e){ e.preventDefault(); rdrop.classList.remove("over"); }); });
+  rdrop.addEventListener("drop",function(e){ var f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) readBackup(f); });
+  rfi.addEventListener("change",function(e){ var f=e.target.files[0]; if(f) readBackup(f); rfi.value=""; });
+  function counts(ints){
+    return { i:ints.length,
+             e:ints.reduce(function(s,x){return s+((x.exemples||[]).length);},0),
+             v:ints.reduce(function(s,x){return s+(Array.isArray(x.versions)?x.versions.length:1);},0) };
+  }
+  async function readBackup(f){
+    PENDING=null; $("rmsg").innerHTML="";
+    var j;
+    try{ j=JSON.parse(await f.text()); }
+    catch(e){ $("rmsg").innerHTML='<div class="notice err">« '+esc(f.name)+' » n\'est pas un fichier JSON lisible.</div>'; return; }
+    var ints=Array.isArray(j)?j:(j&&j.intentions);
+    if(!Array.isArray(ints)||!ints.length){
+      $("rmsg").innerHTML='<div class="notice err">Ce fichier ne contient pas de référentiel d\'intentions. Utilisez un fichier obtenu avec « Export JSON ».</div>'; return;
+    }
+    var bad=ints.filter(function(x){ return !x||typeof x.id!=="string"||typeof x.name!=="string"||typeof x.description!=="string"; });
+    if(bad.length){
+      $("rmsg").innerHTML='<div class="notice err">'+bad.length+' intention(s) incomplète(s) dans ce fichier (identifiant, nom ou business description manquant) : restauration refusée.</div>'; return;
+    }
+    PENDING={intentions:ints,combinaisons:(j&&!Array.isArray(j)&&j.combinaisons)||{},nom:f.name,date:j&&j.exporte_le};
+    var a=counts(ints), c=counts(D.intentions);
+    $("rmsg").innerHTML='<div class="warnbox" style="margin-top:14px"><b>Vérifiez avant de remplacer</b>'+
+      '<ul><li>Sauvegarde « '+esc(f.name)+' »'+(PENDING.date?' du '+esc(fdate(PENDING.date)):'')+' : '+a.i+' intentions, '+a.e+' exemples, '+a.v+' versions de prompts.</li>'+
+      '<li>Référentiel actuel, qui sera remplacé : '+c.i+' intentions, '+c.e+' exemples, '+c.v+' versions de prompts. Il sera téléchargé juste avant.</li></ul>'+
+      '<div style="margin-top:10px"><button class="btn p" id="r-go">Remplacer par cette sauvegarde</button> <button class="btn g" id="r-no">Annuler</button></div></div>';
+    $("r-no").addEventListener("click",function(){ PENDING=null; $("rmsg").innerHTML=""; });
+    $("r-go").addEventListener("click",restaurer);
+  }
+  function restaurer(){
+    if(!PENDING) return;
+    if(conflit){ toast("Rechargez d'abord la page (référentiel modifié ailleurs)"); return; }
+    if(!confirm("Remplacer tout le référentiel par « "+PENDING.nom+" » ?\nL'état actuel va être téléchargé juste avant.")) return;
+    dl(backupJson(),"referentiel-avant-restauration-"+today()+".json");
+    D.intentions=JSON.parse(JSON.stringify(PENDING.intentions));
+    D.combinaisons=JSON.parse(JSON.stringify(PENDING.combinaisons||{}));
+    D.intentions.forEach(function(x){ x.exemples=Array.isArray(x.exemples)?x.exemples:[]; ensureVersions(x); });
+    var n=PENDING.nom; PENDING=null;
+    save(); renderAll();
+    $("rmsg").innerHTML='<div class="notice ok">Référentiel restauré depuis « '+esc(n)+' ». L\'état précédent a été téléchargé (« referentiel-avant-restauration-'+today()+'.json »).</div>';
+  }
   $("b-expx").addEventListener("click", async function(){
     var wb=new ExcelJS.Workbook();
     var ws=wb.addWorksheet("Intentions");
-    ws.addRow(["Identifiant","Nom","Business description","Template de réponse","Nb exemples"]);
-    ws.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; });
-    D.intentions.forEach(function(i){ ws.addRow([i.id,i.name,i.description,i.template,(i.exemples||[]).length]); });
-    [14,34,70,60,12].forEach(function(w,k){ ws.getColumn(k+1).width=w; ws.getColumn(k+1).alignment={wrapText:true,vertical:"top"}; });
-    ws.views=[{state:"frozen",ySplit:1}];
+    ws.addRow(["Identifiant","Nom","Business description (version actuelle)","Version","Template de réponse","Nb exemples","Dont non intégrés"]); head(ws);
+    D.intentions.forEach(function(i){ ws.addRow([i.id,i.name,i.description,"v"+vCur(i),i.template,(i.exemples||[]).length,nouveaux(i)]); });
+    widths(ws,[14,34,70,9,60,12,12]);
     var ws2=wb.addWorksheet("Exemples validés");
-    ws2.addRow(["Intention","Email exemple","Ajouté le","Origine"]);
-    ws2.getRow(1).eachCell(function(c){ c.font={bold:true,color:{argb:"FFFFFFFF"}}; c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF0B3A67"}}; });
-    D.intentions.forEach(function(i){ (i.exemples||[]).forEach(function(e){ ws2.addRow([i.name,e.texte||e,e.date||"",e.source||""]); }); });
-    [34,90,14,14].forEach(function(w,k){ ws2.getColumn(k+1).width=w; ws2.getColumn(k+1).alignment={wrapText:true,vertical:"top"}; });
+    ws2.addRow(["Intention","Email exemple (ou passage concerné)","Email complet (si multi)","Multi-intention avec","Ajouté le","Origine","Intégré au prompt"]); head(ws2);
+    D.intentions.forEach(function(i){ (i.exemples||[]).forEach(function(e){
+      ws2.addRow([i.name,txt(e),e.email&&e.email!==e.texte?e.email:"",(e.avec||[]).map(nameOf).join(" + "),e.date||"",e.source||"",e.integre?"v"+e.integre:"non"]); }); });
+    widths(ws2,[30,70,60,30,12,12,12]);
+    var ws3=wb.addWorksheet("Versions des prompts");
+    ws3.addRow(["Intention","Version","Date","Origine","Note","Nb exemples","Texte"]); head(ws3);
+    D.intentions.forEach(function(i){ ensureVersions(i).forEach(function(v){ ws3.addRow([i.name,"v"+v.n,v.date?fdate(v.date):"",ORIGINES[v.origine]||v.origine,v.note||"",v.nbExemples!=null?v.nbExemples:"",v.description]); }); });
+    widths(ws3,[30,9,17,26,44,11,80]);
+    var ws4=wb.addWorksheet("Combinaisons multi");
+    ws4.addRow(["Combinaison","Nb d'emails","Dernier","Exemple"]); head(ws4);
+    Object.keys(D.combinaisons||{}).forEach(function(k){ var c=D.combinaisons[k]; ws4.addRow([(c.ids||k.split("+")).map(nameOf).join(" + "),c.n||0,c.dernier||"",c.exemple||""]); });
+    widths(ws4,[60,12,12,80]);
     var buf=await wb.xlsx.writeBuffer();
     dl(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}),"referentiel-intentions.xlsx");
   });
